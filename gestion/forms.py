@@ -89,22 +89,16 @@ class AdminPasswordChangeForm(SetPasswordForm):
         fields = ['new_password1', 'new_password2']
 
 class PerfilUpdateForm(forms.ModelForm):
-    area = forms.ModelChoiceField(
-        queryset=Area.objects.all(),
-        required=False,
-        label="Área",
-        widget=forms.Select(attrs={'class': 'form-field-input'})
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk:
-            self.fields['area'].initial = self.instance.area
-
     class Meta:
         model = Perfil
-        fields = ['numero_interno', 'area']
-        labels = {'numero_interno': 'Número de Interno/Teléfono'}
+        # Aquí solo incluimos el campo que queremos que se pueda modificar.
+        fields = ['numero_interno']
+        labels = {
+            'numero_interno': 'Nuevo Número de Interno/Teléfono'
+        }
+        widgets = {
+            'numero_interno': forms.TextInput(attrs={'class': 'form-field-input'}),
+        }
 
 class UserPasswordChangeForm(PasswordChangeForm):
     def __init__(self, *args, **kwargs):
