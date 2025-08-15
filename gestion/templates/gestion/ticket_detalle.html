@@ -52,8 +52,25 @@
             <div class="prose max-w-none text-gray-700">
                 <p>{{ ticket.descripcion|linebreaks }}</p>
             </div>
+
+            <!-- SECCIÓN DE ARCHIVOS ADJUNTOS (NUEVA) -->
+            {% if ticket.adjuntos.all %}
+            <div class="mt-6 pt-4 border-t border-gray-200">
+                <h4 class="text-lg font-semibold text-gray-800 mb-2">Archivos Adjuntos</h4>
+                <ul class="list-disc list-inside space-y-1">
+                    {% for adjunto in ticket.adjuntos.all %}
+                    <li>
+                        <a href="{{ adjunto.archivo.url }}" target="_blank" class="text-indigo-600 hover:underline">
+                            {{ adjunto }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
             <div class="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
-                <strong>Asignado a:</strong> {{ ticket.usuario_asignado.username|default:"Nadie" }} area {{ ticket.usuario_asignado.perfil.area.nombre|default:"Sin Área" }}
+                <strong>Asignado a:</strong> {{ ticket.usuario_asignado.username|default:"Nadie" }} | <strong>Área:</strong> {{ ticket.area_asignada.nombre|default:"Sin Área" }}
             </div>
         </div>
 
@@ -103,7 +120,7 @@
                 <div class="bg-gray-50 p-4 rounded-lg">
                     <p class="text-gray-800">{{ comentario.cuerpo_comentario|linebreaks }}</p>
                     <p class="text-xs text-gray-500 mt-2 text-right">
-                        <strong>{{ comentario.usuario_autor.username }} - {{ ticket.usuario_asignado.perfil.area.nombre|default:"Sin Área" }} {% if ticket.usuario_asignado.perfil.numero_interno %} - Interno {{ ticket.usuario_asignado.perfil.numero_interno }} {% endif %}</strong>, {{ comentario.fecha_creacion|date:"d/m/Y H:i" }}
+                        - <strong>{{ comentario.usuario_autor.username }}</strong>, {{ comentario.fecha_creacion|date:"d/m/Y H:i" }}
                     </p>
                 </div>
                 {% empty %}

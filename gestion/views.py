@@ -13,7 +13,7 @@ import json
 import csv
 import logging
 
-from .models import Ticket, EstadoTicket, Aviso, Perfil, Area
+from .models import Ticket, EstadoTicket, Aviso, Perfil, Area, ArchivoAdjunto
 from .forms import (
     CustomUserCreationForm, TicketCreationForm, CommentForm, 
     StatusChangeForm, AdminPasswordChangeForm, AvisoForm,
@@ -135,8 +135,10 @@ def gestionar_areas_view(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def crear_ticket_view(request: HttpRequest) -> HttpResponse:
+    """Muestra y procesa el formulario para crear un nuevo ticket, incluyendo archivos adjuntos."""
     if request.method == 'POST':
-        form = TicketCreationForm(request.POST)
+        # Pasamos request.FILES al formulario para que maneje los archivos
+        form = TicketCreationForm(request.POST, request.FILES)
         if form.is_valid():
             ticket = form.save(commit=False)
             ticket.usuario_creador = request.user
@@ -144,11 +146,18 @@ def crear_ticket_view(request: HttpRequest) -> HttpResponse:
                 ticket.estado = EstadoTicket.objects.get(nombre_estado='Pendiente')
             except EstadoTicket.DoesNotExist:
                 return HttpResponse("Error: El estado 'Pendiente' no está configurado.", status=500)
-            ticket.save()
-            audit_log.info(f"TICKET CREADO: Usuario '{request.user.username}' creó el ticket #{ticket.id} para el área '{ticket.area_asignada.nombre}'.")
+            
+            ticket.save() # Guardamos el ticket primero para obtener un ID
+
+            # Guardamos cada uno de los archivos adjuntos
+            for f in request.FILES.getlist('adjuntos'):
+                ArchivoAdjunto.objects.create(ticket=ticket, archivo=f)
+
+            audit_log.info(f"TICKET CREADO: Usuario '{request.user.username}' creó el ticket #{ticket.id} '{ticket.titulo}'.")
             return redirect('dashboard')
     else:
         form = TicketCreationForm()
+    
     return render(request, 'gestion/crear_ticket.html', {'form': form})
 
 @login_required

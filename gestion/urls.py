@@ -1,5 +1,6 @@
 # /var/www/tickets/gestion/urls.py
-
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import path
 from .views import (
     show_login_page, 
@@ -41,3 +42,5 @@ urlpatterns = [
     path('areas/', gestionar_areas_view, name='gestionar_areas'),
     path('usuarios/cambiar-area/<int:user_id>/', cambiar_area_view, name='cambiar_area'),
 ]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

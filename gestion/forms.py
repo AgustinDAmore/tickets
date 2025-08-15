@@ -50,9 +50,22 @@ class TicketCreationForm(forms.ModelForm):
         required=True,
         widget=forms.Select(attrs={'class': 'form-field-input'})
     )
+    # Campo para subir múltiples archivos (CORREGIDO)
+    adjuntos = forms.FileField(
+        required=False,
+        label="Adjuntar archivos (opcional)"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super(TicketCreationForm, self).__init__(*args, **kwargs)
+        self.fields['adjuntos'].widget.attrs.update({
+            'multiple': True,
+            'class': 'form-field-input'
+        })
+
     class Meta:
         model = Ticket
-        fields = ['titulo', 'area_asignada', 'descripcion']
+        fields = ['titulo', 'area_asignada', 'descripcion', 'adjuntos']
         widgets = {
             'titulo': forms.TextInput(attrs={'class': 'form-field-input'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-field-input', 'rows': 5}),

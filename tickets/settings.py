@@ -177,3 +177,6 @@ LOGGING = {
 
 # URL de la página de inicio de sesión
 LOGIN_URL = '/login/'
+# --- Configuración para Archivos Subidos por Usuarios ---
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

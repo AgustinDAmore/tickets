@@ -4,6 +4,7 @@ from django.db import models
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import os
 
 User = settings.AUTH_USER_MODEL
 
@@ -61,3 +62,12 @@ class Aviso(models.Model):
     leido_por = models.ManyToManyField(User, related_name='avisos_leidos', blank=True)
     class Meta:
         ordering = ['-fecha_creacion']
+
+class ArchivoAdjunto(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='adjuntos')
+    archivo = models.FileField(upload_to='adjuntos_tickets/')
+    fecha_subida = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        # Devuelve solo el nombre del archivo, no la ruta completa
+        return os.path.basename(self.archivo.name)
