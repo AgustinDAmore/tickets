@@ -103,7 +103,7 @@
                 <div class="bg-gray-50 p-4 rounded-lg">
                     <p class="text-gray-800">{{ comentario.cuerpo_comentario|linebreaks }}</p>
                     <p class="text-xs text-gray-500 mt-2 text-right">
-                        <strong>{{ comentario.usuario_autor.username }} - {{ ticket.usuario_asignado.perfil.area.nombre|default:"Sin Área" }} interno {{ ticket.usuario_asignado.perfil.numero_interno }}</strong>, {{ comentario.fecha_creacion|date:"d/m/Y H:i" }}
+                        <strong>{{ comentario.usuario_autor.username }} - {{ ticket.usuario_asignado.perfil.area.nombre|default:"Sin Área" }} {% if ticket.usuario_asignado.perfil.numero_interno %} - Interno {{ ticket.usuario_asignado.perfil.numero_interno }} {% endif %}</strong>, {{ comentario.fecha_creacion|date:"d/m/Y H:i" }}
                     </p>
                 </div>
                 {% empty %}

@@ -226,7 +226,7 @@ def lista_usuarios_view(request: HttpRequest) -> HttpResponse:
         'all_areas': all_areas
     }
     return render(request, 'gestion/lista_usuarios.html', context)
-    
+
 @login_required
 def crear_usuario_view(request: HttpRequest) -> HttpResponse:
     if not request.user.is_staff:
