@@ -95,6 +95,12 @@ class PerfilUpdateForm(forms.ModelForm):
         label="Área",
         widget=forms.Select(attrs={'class': 'form-field-input'})
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['area'].initial = self.instance.area
+
     class Meta:
         model = Perfil
         fields = ['numero_interno', 'area']
