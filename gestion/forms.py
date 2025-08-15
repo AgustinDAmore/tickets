@@ -117,3 +117,10 @@ class AvisoForm(forms.ModelForm):
             'cuerpo': forms.Textarea(attrs={'class': 'form-field-input', 'rows': 6}),
         }
         labels = {'titulo': 'Título del Aviso', 'cuerpo': 'Mensaje'}
+
+class AreaChangeForm(forms.ModelForm):
+    class Meta:
+        model = Perfil
+        fields = ['area']
+        labels = {'area': ''}
+        widgets = {'area': forms.Select(attrs={'class': 'form-field-input'})}

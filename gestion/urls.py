@@ -18,6 +18,7 @@ from .views import (
     telefonos_view,
     perfil_view,
     gestionar_areas_view,
+    cambiar_area_view,
 )
 
 urlpatterns = [
@@ -38,4 +39,5 @@ urlpatterns = [
     path('telefonos/', telefonos_view, name='telefonos'),
     path('perfil/', perfil_view, name='perfil'),
     path('areas/', gestionar_areas_view, name='gestionar_areas'),
+    path('usuarios/cambiar-area/<int:user_id>/', cambiar_area_view, name='cambiar_area'),
 ]

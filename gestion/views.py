@@ -17,7 +17,8 @@ from .models import Ticket, EstadoTicket, Aviso, Perfil, Area
 from .forms import (
     CustomUserCreationForm, TicketCreationForm, CommentForm, 
     StatusChangeForm, AdminPasswordChangeForm, AvisoForm,
-    PerfilUpdateForm, UserPasswordChangeForm, AreaForm
+    PerfilUpdateForm, UserPasswordChangeForm, AreaForm,
+    AreaChangeForm
 )
 
 audit_log = logging.getLogger('audit')
@@ -331,3 +332,24 @@ def telefonos_view(request: HttpRequest) -> HttpResponse:
         print(f"ADVERTENCIA: El archivo 'directorio.csv' no se encontró en {csv_file_path}")
     context = {'directorio': directorio}
     return render(request, 'gestion/telefonos.html', context)
+
+@login_required
+def cambiar_area_view(request: HttpRequest, user_id: int) -> HttpResponse:
+    if not request.user.is_staff:
+        return redirect('dashboard')
+    try:
+        user_to_change = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return redirect('lista_usuarios')
+
+    if request.method == 'POST':
+        form = AreaChangeForm(request.POST, instance=user_to_change.perfil)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Área para {user_to_change.username} cambiada exitosamente.')
+            return redirect('lista_usuarios')
+    else:
+        form = AreaChangeForm(instance=user_to_change.perfil)
+
+    context = {'form': form, 'user_to_change': user_to_change}
+    return render(request, 'gestion/cambiar_area.html', context)
