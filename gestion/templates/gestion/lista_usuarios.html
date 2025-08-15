@@ -30,13 +30,12 @@
     </nav>
 
     <!-- Contenido Principal -->
-    <main class="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
+    <main class="max-w-5xl mx-auto py-6 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
             <div class="bg-white shadow-lg rounded-lg overflow-hidden">
                 <div class="px-6 py-4 border-b flex justify-between items-center">
                     <h2 class="text-2xl font-semibold text-gray-800">Gestión de Usuarios</h2>
                     <div class="flex items-center gap-2">
-                        <!-- BOTÓN AÑADIDO -->
                         <a href="{% url 'gestionar_areas' %}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">
                             Gestionar Áreas
                         </a>
@@ -51,6 +50,7 @@
                             <tr>
                                 <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
                                 <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                                <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Área</th>
                                 <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                                 <th class="py-3 px-6 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                             </tr>
@@ -60,7 +60,32 @@
                             <tr>
                                 <td class="py-4 px-6 whitespace-nowrap text-sm font-medium text-gray-900">{{ u.username }}</td>
                                 <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-500">
-                                    {% if u.is_staff %}Administrador{% else %}Usuario{% endif %}
+                                    {% if u.id != user.id %}
+                                    <form action="{% url 'lista_usuarios' %}" method="post" class="inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="user_id" value="{{ u.id }}">
+                                        <input type="hidden" name="action" value="change_role">
+                                        <select name="is_staff" onchange="this.form.submit()" class="rounded-md border-gray-300">
+                                            <option value="False" {% if not u.is_staff %}selected{% endif %}>Usuario</option>
+                                            <option value="True" {% if u.is_staff %}selected{% endif %}>Administrador</option>
+                                        </select>
+                                    </form>
+                                    {% else %}
+                                        {% if u.is_staff %}Administrador{% else %}Usuario{% endif %}
+                                    {% endif %}
+                                </td>
+                                <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-500">
+                                    <form action="{% url 'lista_usuarios' %}" method="post" class="inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="user_id" value="{{ u.id }}">
+                                        <input type="hidden" name="action" value="change_area">
+                                        <select name="area_id" onchange="this.form.submit()" class="rounded-md border-gray-300">
+                                            <option value="">Sin Área</option>
+                                            {% for area in all_areas %}
+                                            <option value="{{ area.id }}" {% if u.perfil.area.id == area.id %}selected{% endif %}>{{ area.nombre }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </form>
                                 </td>
                                 <td class="py-4 px-6 whitespace-nowrap text-sm">
                                     {% if u.is_active %}
@@ -70,7 +95,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="py-4 px-6 whitespace-nowrap text-sm text-center">
-                                    {% if u.id != user.id %} {# Evita que un admin se modifique a sí mismo #}
+                                    {% if u.id != user.id %}
                                     <form action="{% url 'toggle_usuario' u.id %}" method="post" class="inline mr-2">
                                         {% csrf_token %}
                                         <button type="submit" class="text-indigo-600 hover:text-indigo-900">
@@ -80,10 +105,6 @@
                                     <span class="text-gray-300">|</span>
                                     <a href="{% url 'cambiar_contrasena' u.id %}" class="text-indigo-600 hover:text-indigo-900 inline ml-2">
                                         Cambiar Contraseña
-                                    </a>
-                                    <span class="text-gray-300">|</span>
-                                    <a href="{% url 'cambiar_area' u.id %}" class="text-indigo-600 hover:text-indigo-900 inline ml-2">
-                                        Cambiar Area
                                     </a>
                                     {% endif %}
                                 </td>

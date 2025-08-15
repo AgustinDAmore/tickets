@@ -192,9 +192,41 @@ def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
 def lista_usuarios_view(request: HttpRequest) -> HttpResponse:
     if not request.user.is_staff:
         return redirect('dashboard')
-    usuarios = User.objects.select_related('perfil', 'perfil__area').all().order_by('username')
-    return render(request, 'gestion/lista_usuarios.html', {'usuarios': usuarios})
 
+    # Lógica para manejar cambios de rol o área desde la tabla
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        action = request.POST.get('action')
+        user_to_change = User.objects.get(id=user_id)
+
+        if user_to_change != request.user: # Prevenir que un admin se modifique a sí mismo
+            if action == 'change_role':
+                new_role = request.POST.get('is_staff') == 'True'
+                user_to_change.is_staff = new_role
+                user_to_change.save()
+                messages.success(request, f"Rol de {user_to_change.username} actualizado.")
+            
+            elif action == 'change_area':
+                area_id = request.POST.get('area_id')
+                if area_id:
+                    new_area = Area.objects.get(id=area_id)
+                    user_to_change.perfil.area = new_area
+                else:
+                    user_to_change.perfil.area = None
+                user_to_change.perfil.save()
+                messages.success(request, f"Área de {user_to_change.username} actualizada.")
+        
+        return redirect('lista_usuarios')
+
+    # Lógica para mostrar la página
+    usuarios = User.objects.select_related('perfil', 'perfil__area').all().order_by('username')
+    all_areas = Area.objects.all().order_by('nombre')
+    context = {
+        'usuarios': usuarios,
+        'all_areas': all_areas
+    }
+    return render(request, 'gestion/lista_usuarios.html', context)
+    
 @login_required
 def crear_usuario_view(request: HttpRequest) -> HttpResponse:
     if not request.user.is_staff:
