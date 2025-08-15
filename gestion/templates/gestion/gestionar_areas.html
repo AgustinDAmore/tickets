@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Áreas - Sistema de Tickets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .form-field-input { width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #D1D5DB; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <a href="{% url 'dashboard' %}" class="flex-shrink-0 flex items-center"><h1 class="text-xl font-bold text-gray-800">Sistema de Tickets</h1></a>
+                <a href="{% url 'lista_usuarios' %}" class="text-gray-600 hover:text-gray-800 my-auto">Volver a Usuarios</a>
+            </div>
+        </div>
+    </nav>
+    <main class="max-w-4xl mx-auto py-10 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Formulario para crear nueva área -->
+        <div class="bg-white shadow-lg rounded-lg p-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6">Crear Nueva Área</h2>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label for="{{ form.nombre.id_for_label }}" class="block mb-2 font-medium">Nombre del Área</label>
+                    {{ form.nombre }}
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg">Guardar Área</button>
+            </form>
+        </div>
+        <!-- Lista de áreas existentes -->
+        <div class="bg-white shadow-lg rounded-lg p-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6">Áreas Existentes</h2>
+            <ul class="divide-y divide-gray-200">
+                {% for area in areas %}
+                <li class="py-3">{{ area.nombre }}</li>
+                {% empty %}
+                <li class="py-3 text-gray-500">No hay áreas creadas.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </main>
+</body>
+</html>

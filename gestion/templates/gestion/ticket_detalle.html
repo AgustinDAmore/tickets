@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle del Ticket #{{ ticket.id }} - Sistema de Tickets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .form-field-input { width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #D1D5DB; background-color: white; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Barra de Navegación -->
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <a href="{% url 'dashboard' %}" class="flex-shrink-0 flex items-center">
+                    <h1 class="text-xl font-bold text-gray-800">Sistema de Tickets</h1>
+                </a>
+                <div class="flex items-center">
+                    <a href="{% url 'dashboard' %}" class="text-gray-600 hover:text-gray-800 mr-4">Volver al Dashboard</a>
+                    <a href="{% url 'logout' %}" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">
+                        Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido del Ticket -->
+    <main class="max-w-4xl mx-auto py-10 sm:px-6 lg:px-8">
+        <!-- Detalles del Ticket -->
+        <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900">{{ ticket.titulo }}</h2>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Abierto por <strong>{{ ticket.usuario_creador.username }}</strong> el {{ ticket.fecha_creacion|date:"d/m/Y \a \l\a\s H:i" }}
+                    </p>
+                </div>
+                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full 
+                    {% if ticket.estado.nombre_estado == 'Finalizado' %} bg-green-100 text-green-800 
+                    {% elif ticket.estado.nombre_estado == 'Aceptado' %} bg-yellow-100 text-yellow-800
+                    {% elif ticket.estado.nombre_estado == 'Pendiente' %} bg-red-100 text-red-800
+                    {% else %} bg-gray-100 text-gray-800 {% endif %}">
+                    {{ ticket.estado.nombre_estado }}
+                </span>
+            </div>
+            <div class="prose max-w-none text-gray-700">
+                <p>{{ ticket.descripcion|linebreaks }}</p>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
+                <strong>Asignado a:</strong> {{ ticket.usuario_asignado.username|default:"Nadie" }} area {{ ticket.usuario_asignado.perfil.area.nombre|default:"Sin Área" }}
+            </div>
+        </div>
+
+        <!-- SECCIÓN DE ACCIONES (SOLO PARA EL USUARIO ASIGNADO O ADMINS) -->
+        {% if user == ticket.usuario_asignado or user.is_staff %}
+        <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Acciones</h3>
+            <form method="post">
+                {% csrf_token %}
+                <div class="flex items-end gap-4">
+                    <div class="flex-grow">
+                        <label for="{{ status_form.estado.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ status_form.estado.label }}</label>
+                        {{ status_form.estado }}
+                    </div>
+                    <button type="submit" name="update_status" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg h-11">
+                        Actualizar Estado
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Sección de Comentarios -->
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Comentarios ({{ ticket.comentarios.count }})</h3>
+            
+            <!-- Formulario para añadir nuevo comentario (SOLO SI EL TICKET NO ESTÁ FINALIZADO) -->
+            {% if ticket.estado.nombre_estado != 'Finalizado' %}
+            <form method="post" class="mb-6">
+                {% csrf_token %}
+                {{ comment_form.cuerpo_comentario }}
+                <div class="mt-2 text-right">
+                    <button type="submit" name="add_comment" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+                        Añadir Comentario
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <div class="text-center text-gray-500 bg-gray-50 p-4 rounded-lg mb-6">
+                Este ticket está finalizado y no admite nuevos comentarios.
+            </div>
+            {% endif %}
+
+            <!-- Lista de comentarios existentes -->
+            <div class="space-y-4">
+                {% for comentario in ticket.comentarios.all %}
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-gray-800">{{ comentario.cuerpo_comentario|linebreaks }}</p>
+                    <p class="text-xs text-gray-500 mt-2 text-right">
+                        <strong>{{ comentario.usuario_autor.username }} - {{ ticket.usuario_asignado.perfil.area.nombre|default:"Sin Área" }} interno {{ ticket.usuario_asignado.perfil.numero_interno }}</strong>, {{ comentario.fecha_creacion|date:"d/m/Y H:i" }}
+                    </p>
+                </div>
+                {% empty %}
+                <p class="text-gray-500 text-center py-4">No hay comentarios todavía.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>

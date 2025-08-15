@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avisos - Sistema de Tickets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <a href="{% url 'dashboard' %}" class="flex-shrink-0 flex items-center">
+                    <h1 class="text-xl font-bold text-gray-800">Sistema de Tickets</h1>
+                </a>
+                <a href="{% url 'dashboard' %}" class="text-gray-600 hover:text-gray-800 my-auto">Volver al Dashboard</a>
+            </div>
+        </div>
+    </nav>
+    <main class="max-w-4xl mx-auto py-10 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold text-gray-800">Avisos Recientes</h2>
+            {% if user.is_staff %}
+            <a href="{% url 'crear_aviso' %}" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">
+                Enviar Nuevo Aviso
+            </a>
+            {% endif %}
+        </div>
+        <div class="space-y-6">
+            {% for aviso in avisos %}
+            <div class="bg-white shadow-lg rounded-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-900">{{ aviso.titulo }}</h3>
+                <p class="text-sm text-gray-500 mt-1">
+                    Publicado por <strong>{{ aviso.autor.username }}</strong> el {{ aviso.fecha_creacion|date:"d/m/Y H:i" }}
+                </p>
+                <div class="mt-4 text-gray-700">
+                    {{ aviso.cuerpo|linebreaks }}
+                </div>
+            </div>
+            {% empty %}
+            <div class="bg-white shadow-lg rounded-lg p-10 text-center">
+                <p class="text-gray-500">No hay avisos para mostrar.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</body>
+</html>

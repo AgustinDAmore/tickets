@@ -1,0 +1,119 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f7f9;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+.container {
+    max-width: 800px;
+    margin: 20px auto;
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+h1 {
+    color: #47c7b8;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+#searchInput {
+    width: 100%;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 16px;
+}
+#searchInput:focus {
+    outline: none;
+    border-color: #47c7b8;
+    box-shadow: 0 0 5px rgba(71,199,184,0.5);
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+thead th {
+    background-color: #47c7b8;
+    color: #ffffff;
+    font-weight: bold;
+    text-align: left;
+}
+tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+tbody tr:hover {
+    background-color: #e9ecef;
+}
+footer {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 14px;
+    color: #777;
+}
+#loadingMessage {
+    text-align: center;
+    color: #ff0000;
+    font-style: italic;
+}
+img {
+    display: block;
+    margin: 0 auto;
+    width: 15%;
+    height: auto;
+}
+tr.copied {
+    background-color: #9ebfdd !important;
+    color: #777;
+    transition: background-color 0.05s ease-in-out;
+}
+.info-icon {
+    position: relative;
+    display: inline-block;
+    background-color: #9ebfdd;
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    line-height: 25px;
+    cursor: help;
+    margin-left: 10px;
+    font-family: 'Georgia', serif;
+}
+.info-icon .tooltip-text {
+    visibility: hidden;
+    width: 220px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -110px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 14px;
+    font-weight: normal;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+}
+.info-icon:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}

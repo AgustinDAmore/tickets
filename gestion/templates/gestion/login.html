@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Sistema de Tickets</title>
+    <!-- Incluyendo Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Usando la fuente Inter de Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+
+    <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-gray-800">Sistema de Tickets</h1>
+            <p class="text-gray-500">Bienvenido, por favor inicia sesión</p>
+        </div>
+
+        <form id="loginForm">
+            <!-- El token de Django sigue siendo necesario para el primer renderizado -->
+            {% csrf_token %}
+            
+            <!-- Campos de Usuario y Contraseña -->
+            <div class="mb-4">
+                <label for="nombre_usuario" class="block text-gray-700 text-sm font-bold mb-2">
+                    Nombre de Usuario
+                </label>
+                <input type="text" id="nombre_usuario" name="nombre_usuario" placeholder="ej: juan.perez" required class="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <div class="mb-6">
+                <label for="password" class="block text-gray-700 text-sm font-bold mb-2">
+                    Contraseña
+                </label>
+                <input type="password" id="password" name="password" placeholder="••••••••••" required class="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            
+            <div id="messageContainer" class="mb-4 text-center text-sm"></div>
+
+            <div class="flex items-center justify-between">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200">
+                    Iniciar Sesión
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+    <script>
+        // --- SCRIPT ACTUALIZADO Y MÁS ROBUSTO ---
+
+        // Función para obtener el token CSRF directamente de las cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const username = form.querySelector('#nombre_usuario').value;
+            const password = form.querySelector('#password').value;
+            
+            // Obtenemos el token de la cookie, que siempre está actualizado
+            const csrfToken = getCookie('csrftoken');
+
+            const data = {
+                nombre_usuario: username,
+                password: password
+            };
+            
+            const messageContainer = document.getElementById('messageContainer');
+            messageContainer.textContent = '';
+
+            try {
+                const response = await fetch('/api/login/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken // Usamos el token de la cookie
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const responseData = await response.json();
+                    if (responseData.success) {
+                        window.location.href = responseData.redirect_url;
+                    }
+                } else {
+                    const responseText = await response.text();
+                    messageContainer.style.color = 'red';
+                    messageContainer.textContent = responseText;
+                }
+
+            } catch (error) {
+                console.error('Error de red o al enviar la petición:', error);
+                messageContainer.style.color = 'red';
+                messageContainer.textContent = 'Error de conexión. Inténtalo de nuevo.';
+            }
+        });
+    </script>
+
+</body>
+</html>

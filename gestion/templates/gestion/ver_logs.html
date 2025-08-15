@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor de Logs - Sistema de Tickets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Barra de Navegación -->
+    <nav class="bg-gray-800 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <a href="{% url 'dashboard' %}" class="flex-shrink-0 flex items-center">
+                    <h1 class="text-xl font-bold text-white">Visor de Logs</h1>
+                </a>
+                <a href="{% url 'dashboard' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold my-auto py-2 px-4 rounded-lg">
+                    Volver al Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="font-mono text-sm bg-black rounded-lg p-4 overflow-x-auto">
+            <pre><code>{% for line in log_lines %}
+{{ line }}
+{% empty %}
+No se ha generado ningún log todavía o el archivo no se puede leer.
+{% endfor %}</code></pre>
+        </div>
+    </main>
+
+</body>
+</html>
