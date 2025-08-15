@@ -258,12 +258,15 @@ def perfil_view(request: HttpRequest) -> HttpResponse:
                 return redirect('perfil')
         elif 'change_password' in request.POST:
             password_form = UserPasswordChangeForm(request.user, request.POST)
-            profile_form = PerfilUpdateForm(instance=perfil)
+            profile_form = PerfilUpdateForm(request.POST, instance=perfil)
             if password_form.is_valid():
                 user = password_form.save()
                 update_session_auth_hash(request, user)
                 messages.success(request, '¡Tu contraseña ha sido cambiada exitosamente!')
                 return redirect('perfil')
+            else:
+                # Si el formulario de contraseña falla, aún queremos renderizar el formulario de perfil con los datos actuales
+                profile_form = PerfilUpdateForm(instance=perfil)
     else:
         profile_form = PerfilUpdateForm(instance=perfil)
         password_form = UserPasswordChangeForm(request.user)
