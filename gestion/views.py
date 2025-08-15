@@ -86,6 +86,8 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
         )
     if status_filter:
         tickets = tickets.filter(estado__id=status_filter)
+    print(request.user.is_staff)
+    print(request.user.is_superuser)
     if creator_filter and request.user.is_staff and view_mode == 'todos':
         tickets = tickets.filter(usuario_creador__id=creator_filter)
 
