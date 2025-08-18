@@ -120,7 +120,7 @@
                 <div class="bg-gray-50 p-4 rounded-lg">
                     <p class="text-gray-800">{{ comentario.cuerpo_comentario|linebreaks }}</p>
                     <p class="text-xs text-gray-500 mt-2 text-right">
-                        - <strong>{{ comentario.usuario_autor.username }}</strong>, {{ comentario.fecha_creacion|date:"d/m/Y H:i" }}
+                        <strong>{% if comentario.usuario_autor.perfil.numero_interno %} {{ comentario.usuario_autor.username }} - {{ comentario.usuario_autor.perfil.area.nombre }} - Interno: {{ comentario.usuario_autor.perfil.numero_interno }} {% else %} {{ comentario.usuario_autor.username }} - {{ comentario.usuario_autor.perfil.area.nombre }} {% endif %}</strong>, {{ comentario.fecha_creacion|date:"d/m/Y H:i" }}
                     </p>
                 </div>
                 {% empty %}

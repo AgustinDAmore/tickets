@@ -81,13 +81,17 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
             tickets = tickets.filter(usuario_creador=request.user)
 
     if search_query:
+        # --- CAMBIO APLICADO AQUÍ ---
+        # Ahora busca por título, ID y descripción del ticket.
         tickets = tickets.filter(
-            Q(titulo__icontains=search_query) | Q(id__icontains=search_query)
+            Q(titulo__icontains=search_query) |
+            Q(id__icontains=search_query) |
+            Q(descripcion__icontains=search_query) # Reemplaza 'descripcion' si tu campo se llama diferente
         )
+    
     if status_filter:
         tickets = tickets.filter(estado__id=status_filter)
-    print(request.user.is_staff)
-    print(request.user.is_superuser)
+
     if creator_filter and request.user.is_staff and view_mode == 'todos':
         tickets = tickets.filter(usuario_creador__id=creator_filter)
 
