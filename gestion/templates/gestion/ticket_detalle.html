@@ -38,7 +38,7 @@
                 <div>
                     <h2 class="text-3xl font-bold text-gray-900">{{ ticket.titulo }}</h2>
                     <p class="text-sm text-gray-500 mt-1">
-                        Abierto por <strong>{% if comentario.usuario_creador.perfil.numero_interno %} {{ comentario.usuario_creador.username }} - {{ comentario.usuario_creador.perfil.area.nombre }} - Interno: {{ comentario.usuario_creador.perfil.numero_interno }} {% else %} {{ comentario.usuario_creador.username }} - {{ comentario.usuario_creador.perfil.area.nombre }} {% endif %}</strong> el {{ ticket.fecha_creacion|date:"d/m/Y \a \l\a\s H:i" }}
+                        Abierto por <strong>{% if ticket.usuario_creador.perfil.numero_interno %} {{ ticket.usuario_creador.username|capfirst }} - {{ ticket.usuario_creador.perfil.area.nombre|capfirst }} - Interno: {{ ticket.usuario_creador.perfil.numero_interno|capfirst }} {% else %} {{ ticket.usuario_creador.username|capfirst }} - {{ ticket.usuario_creador.perfil.area.nombre|capfirst }} {% endif %}</strong> el {{ ticket.fecha_creacion|date:"d/m/Y \a \l\a\s H:i" }}
                     </p>
                 </div>
                 <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full 
@@ -70,7 +70,7 @@
             {% endif %}
 
             <div class="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
-                <strong>Asignado a:</strong> {{ ticket.usuario_asignado.username|default:"Nadie" }} | <strong>Área:</strong> {{ ticket.area_asignada.nombre|default:"Sin Área" }}
+                <strong>Asignado a:</strong> {{ ticket.usuario_asignado.username|default:"Nadie"|capfirst }} | <strong>Área:</strong> {{ ticket.area_asignada.nombre|default:"Sin Área" }}
             </div>
         </div>
 
@@ -120,7 +120,7 @@
                 <div class="bg-gray-50 p-4 rounded-lg">
                     <p class="text-gray-800">{{ comentario.cuerpo_comentario|linebreaks }}</p>
                     <p class="text-xs text-gray-500 mt-2 text-right">
-                        <strong>{% if comentario.usuario_autor.perfil.numero_interno %} {{ comentario.usuario_autor.username }} - {{ comentario.usuario_autor.perfil.area.nombre }} - Interno: {{ comentario.usuario_autor.perfil.numero_interno }} {% else %} {{ comentario.usuario_autor.username }} - {{ comentario.usuario_autor.perfil.area.nombre }} {% endif %}</strong>, {{ comentario.fecha_creacion|date:"d/m/Y H:i" }}
+                        <strong>{% if comentario.usuario_autor.perfil.numero_interno %} {{ comentario.usuario_autor.username|capfirst }} - {{ comentario.usuario_autor.perfil.area.nombre|capfirst }} - Interno: {{ comentario.usuario_autor.perfil.numero_interno }} {% else %} {{ comentario.usuario_autor.username|capfirst }} - {{ comentario.usuario_autor.perfil.area.nombre|capfirst }} {% endif %}</strong>, {{ comentario.fecha_creacion|date:"d/m/Y H:i" }}
                     </p>
                 </div>
                 {% empty %}

@@ -142,8 +142,8 @@
                                     {{ ticket.estado.nombre_estado }}
                                 </span>
                             </td>
-                            <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-500">{{ ticket.usuario_creador.username }}</td>
-                            <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-500">{{ ticket.usuario_asignado.username|default:"Sin asignar" }}</td>
+                            <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-500">{{ ticket.usuario_creador.username|capfirst }}</td>
+                            <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-500">{{ ticket.usuario_asignado.username|default:"Sin asignar"|capfirst }}</td>
                             <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-500">{{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</td>
                         </tr>
                         {% empty %}
