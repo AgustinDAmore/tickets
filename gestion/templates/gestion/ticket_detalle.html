@@ -38,7 +38,7 @@
                 <div>
                     <h2 class="text-3xl font-bold text-gray-900">{{ ticket.titulo }}</h2>
                     <p class="text-sm text-gray-500 mt-1">
-                        Abierto por <strong>{{ ticket.usuario_creador.username }}</strong> el {{ ticket.fecha_creacion|date:"d/m/Y \a \l\a\s H:i" }}
+                        Abierto por <strong>{% if comentario.usuario_creador.perfil.numero_interno %} {{ comentario.usuario_creador.username }} - {{ comentario.usuario_creador.perfil.area.nombre }} - Interno: {{ comentario.usuario_creador.perfil.numero_interno }} {% else %} {{ comentario.usuario_creador.username }} - {{ comentario.usuario_creador.perfil.area.nombre }} {% endif %}</strong> el {{ ticket.fecha_creacion|date:"d/m/Y \a \l\a\s H:i" }}
                     </p>
                 </div>
                 <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full 
