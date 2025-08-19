@@ -400,3 +400,11 @@ def cambiar_area_view(request: HttpRequest, user_id: int) -> HttpResponse:
 
     context = {'form': form, 'user_to_change': user_to_change}
     return render(request, 'gestion/cambiar_area.html', context)
+
+def custom_404_view(request):
+    """Renderiza la página de error 404 (Página no encontrada)."""
+    return render(request, '404.html', status=404)
+
+def custom_500_view(request):
+    """Renderiza la página de error 500 (Error interno del servidor)."""
+    return render(request, '500.html', status=500)
