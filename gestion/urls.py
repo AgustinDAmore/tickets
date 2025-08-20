@@ -20,6 +20,7 @@ from .views import (
     perfil_view,
     gestionar_areas_view,
     cambiar_area_view,
+    test_notification_view,
 )
 
 urlpatterns = [
@@ -41,6 +42,7 @@ urlpatterns = [
     path('perfil/', perfil_view, name='perfil'),
     path('areas/', gestionar_areas_view, name='gestionar_areas'),
     path('usuarios/cambiar-area/<int:user_id>/', cambiar_area_view, name='cambiar_area'),
+    path('test-notification/', test_notification_view, name='test_notification'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

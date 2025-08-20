@@ -13,6 +13,9 @@ import json
 import csv
 import logging
 
+from django.http import HttpResponse
+from webpush import send_user_notification
+
 from .models import Ticket, EstadoTicket, Aviso, Perfil, Area, ArchivoAdjunto
 from .forms import (
     CustomUserCreationForm, TicketCreationForm, CommentForm, 
@@ -143,7 +146,6 @@ def gestionar_areas_view(request: HttpRequest) -> HttpResponse:
 def crear_ticket_view(request: HttpRequest) -> HttpResponse:
     """Muestra y procesa el formulario para crear un nuevo ticket, incluyendo archivos adjuntos."""
     if request.method == 'POST':
-        # Pasamos request.FILES al formulario para que maneje los archivos
         form = TicketCreationForm(request.POST, request.FILES)
         if form.is_valid():
             ticket = form.save(commit=False)
@@ -153,18 +155,71 @@ def crear_ticket_view(request: HttpRequest) -> HttpResponse:
             except EstadoTicket.DoesNotExist:
                 return HttpResponse("Error: El estado 'Pendiente' no está configurado.", status=500)
             
-            ticket.save() # Guardamos el ticket primero para obtener un ID
+            ticket.save()
 
-            # Guardamos cada uno de los archivos adjuntos
             for f in request.FILES.getlist('adjuntos'):
                 ArchivoAdjunto.objects.create(ticket=ticket, archivo=f)
 
             audit_log.info(f"TICKET CREADO: Usuario '{request.user.username}' creó el ticket #{ticket.id} '{ticket.titulo}'.")
+
+            # --- LÓGICA DE NOTIFICACIÓN CON MÁS DETALLES ---
+            print(">>> INICIANDO PROCESO DE NOTIFICACIÓN <<<")
+            area_asignada = ticket.area_asignada
+            if area_asignada:
+                print(f"Ticket asignado al área: {area_asignada.nombre}")
+                
+                usuarios_a_notificar = User.objects.filter(perfil__area=area_asignada, is_active=True)
+                print(f"Usuarios encontrados en esta área: {usuarios_a_notificar.count()}")
+
+                if not usuarios_a_notificar.exists():
+                    print("No se encontraron usuarios para notificar en esta área.")
+
+                payload = {
+                    "head": "Nuevo Ticket Asignado a tu Área",
+                    "body": f"Asunto: '{ticket.titulo}'",
+                    "url": f"/tickets/{ticket.id}/"
+                }
+
+                for usuario in usuarios_a_notificar:
+                    print(f"Intentando notificar a: {usuario.username}")
+                    if usuario == request.user:
+                        print(f"...saltando notificación para el creador del ticket ({usuario.username}).")
+                        continue
+                    try:
+                        send_user_notification(user=usuario, payload=payload, ttl=1000)
+                        print(f"¡Notificación enviada exitosamente a {usuario.username}!")
+                    except Exception as e:
+                        print(f"!!! ERROR enviando notificación a {usuario.username}: {e}")
+            else:
+                print("El ticket no tiene un área asignada, no se enviarán notificaciones.")
+            
+            print(">>> FIN DEL PROCESO DE NOTIFICACIÓN <<<")
+            # --- FIN DE LA LÓGICA ---
+
             return redirect('dashboard')
     else:
         form = TicketCreationForm()
     
     return render(request, 'gestion/crear_ticket.html', {'form': form})
+
+@login_required
+def test_notification_view(request):
+    """Envía una notificación de prueba al usuario que la solicita."""
+    try:
+        payload = {
+            "head": "¡Notificación de Prueba! 🔔",
+            "body": "Si ves esto, tu navegador está configurado correctamente.",
+            "url": "/dashboard/" # URL a la que ir al hacer clic
+        }
+        send_user_notification(user=request.user, payload=payload, ttl=1000)
+
+        # Devolvemos una respuesta vacía con estado 200 (OK)
+        return HttpResponse(status=204) 
+
+    except Exception as e:
+        # Si algo falla, lo registramos y devolvemos un error
+        print(f"Error al enviar notificación de prueba a {request.user.username}: {e}")
+        return HttpResponse(status=500)
 
 @login_required
 def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
