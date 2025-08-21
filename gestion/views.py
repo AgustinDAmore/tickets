@@ -7,7 +7,9 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
+import logging
 import os
 import json
 import csv
@@ -67,7 +69,9 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
 
     tickets = Ticket.objects.select_related('estado', 'usuario_creador', 'area_asignada')
 
-    if request.user.is_staff and view_mode == 'todos':
+    user_can_view_all_tickets = request.user.groups.filter(name='Ver todos los tickets').exists()
+
+    if user_can_view_all_tickets and view_mode == 'todos':
         current_view_name = "Todos los Tickets"
         tickets = tickets.all()
     else:
@@ -95,7 +99,7 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
     if status_filter:
         tickets = tickets.filter(estado__id=status_filter)
 
-    if creator_filter and request.user.is_staff and view_mode == 'todos':
+    if creator_filter and user_can_view_all_tickets and view_mode == 'todos':
         tickets = tickets.filter(usuario_creador__id=creator_filter)
 
     tickets = tickets.order_by('-fecha_creacion')
@@ -110,9 +114,10 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
         'unread_avisos_count': Aviso.objects.exclude(leido_por=request.user).count(),
         'current_view_name': current_view_name,
         'view_mode': view_mode,
+        'user_can_view_all_tickets': user_can_view_all_tickets,
     }
     
-    if request.user.is_staff:
+    if user_can_view_all_tickets:
         context['all_users'] = User.objects.filter(is_active=True).order_by('username')
     
     return render(request, 'gestion/dashboard.html', context)
@@ -203,25 +208,6 @@ def crear_ticket_view(request: HttpRequest) -> HttpResponse:
     return render(request, 'gestion/crear_ticket.html', {'form': form})
 
 @login_required
-def test_notification_view(request):
-    """Envía una notificación de prueba al usuario que la solicita."""
-    try:
-        payload = {
-            "head": "¡Notificación de Prueba! 🔔",
-            "body": "Si ves esto, tu navegador está configurado correctamente.",
-            "url": "/dashboard/" # URL a la que ir al hacer clic
-        }
-        send_user_notification(user=request.user, payload=payload, ttl=1000)
-
-        # Devolvemos una respuesta vacía con estado 200 (OK)
-        return HttpResponse(status=204) 
-
-    except Exception as e:
-        # Si algo falla, lo registramos y devolvemos un error
-        print(f"Error al enviar notificación de prueba a {request.user.username}: {e}")
-        return HttpResponse(status=500)
-
-@login_required
 def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
     try:
         ticket = Ticket.objects.get(id=ticket_id)
@@ -263,20 +249,14 @@ def lista_usuarios_view(request: HttpRequest) -> HttpResponse:
     if not request.user.is_staff:
         return redirect('dashboard')
 
-    # Lógica para manejar cambios de rol o área desde la tabla
+    # Lógica para manejar cambios de área desde la tabla
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
         action = request.POST.get('action')
         user_to_change = User.objects.get(id=user_id)
 
         if user_to_change != request.user: # Prevenir que un admin se modifique a sí mismo
-            if action == 'change_role':
-                new_role = request.POST.get('is_staff') == 'True'
-                user_to_change.is_staff = new_role
-                user_to_change.save()
-                messages.success(request, f"Rol de {user_to_change.username} actualizado.")
-            
-            elif action == 'change_area':
+            if action == 'change_area':
                 area_id = request.POST.get('area_id')
                 if area_id:
                     new_area = Area.objects.get(id=area_id)
@@ -289,7 +269,7 @@ def lista_usuarios_view(request: HttpRequest) -> HttpResponse:
         return redirect('lista_usuarios')
 
     # Lógica para mostrar la página
-    usuarios = User.objects.select_related('perfil', 'perfil__area').all().order_by('username')
+    usuarios = User.objects.select_related('perfil', 'perfil__area').prefetch_related('groups').all().order_by('username')
     all_areas = Area.objects.all().order_by('nombre')
     context = {
         'usuarios': usuarios,
@@ -368,7 +348,6 @@ def perfil_view(request: HttpRequest) -> HttpResponse:
                 messages.success(request, '¡Tu contraseña ha sido cambiada exitosamente!')
                 return redirect('perfil')
             else:
-                # Si el formulario de contraseña falla, aún queremos renderizar el formulario de perfil con los datos actuales
                 profile_form = PerfilUpdateForm(instance=perfil)
     else:
         profile_form = PerfilUpdateForm(instance=perfil)
@@ -380,7 +359,7 @@ def perfil_view(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def crear_aviso_view(request: HttpRequest) -> HttpResponse:
-    if not request.user.is_staff:
+    if not request.user.groups.filter(name='Enviar Avisos').exists():
         return redirect('dashboard')
     if request.method == 'POST':
         form = AvisoForm(request.POST)
@@ -397,9 +376,14 @@ def crear_aviso_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def lista_avisos_view(request: HttpRequest) -> HttpResponse:
     avisos = Aviso.objects.all()
+    user_can_send_avisos = request.user.groups.filter(name='Enviar Avisos').exists()
     for aviso in avisos:
         aviso.leido_por.add(request.user)
-    return render(request, 'gestion/lista_avisos.html', {'avisos': avisos})
+    context = {
+        'avisos': avisos,
+        'user_can_send_avisos': user_can_send_avisos,
+    }
+    return render(request, 'gestion/lista_avisos.html', context)
 
 # --- VISTA DE LOGS (SOLO ADMINS) ---
 
@@ -463,3 +447,49 @@ def custom_404_view(request):
 def custom_500_view(request):
     """Renderiza la página de error 500 (Error interno del servidor)."""
     return render(request, '500.html', status=500)
+
+###########################################################################
+# Servicios
+###########################################################################
+logger = logging.getLogger(__name__)
+User = get_user_model()
+
+@csrf_exempt
+def verificar_acceso_cp(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Método no permitido.'}, status=405)
+
+    try:
+        # Leemos el cuerpo de la petición
+        data = json.loads(request.body)
+        username = data.get('username')
+        password = data.get('password')
+
+        if not username or not password:
+            return JsonResponse({'status': 'error', 'message': 'Faltan credenciales.'}, status=400)
+
+        # --- BÚSQUEDA DE USUARIO A PRUEBA DE ERRORES ---
+        # Buscamos el usuario por su username, sin distinguir mayúsculas/minúsculas
+        user = User.objects.filter(username__iexact=username).first()
+
+        # Verificamos si el usuario existe Y si la contraseña es correcta
+        if user and user.check_password(password):
+            if user.is_active:
+                # Si las credenciales son correctas, verificamos el permiso
+                if user.groups.filter(name='CP Access').exists():
+                    return JsonResponse({'status': 'ok', 'message': 'Acceso concedido.'})
+                else:
+                    return JsonResponse({'status': 'error', 'message': 'Usuario no tiene permisos para CP.'}, status=403)
+            else:
+                return JsonResponse({'status': 'error', 'message': 'La cuenta de usuario está inactiva.'}, status=403)
+        else:
+            # Si el usuario no existe o la contraseña no coincide
+            return JsonResponse({'status': 'error', 'message': 'Credenciales inválidas.'}, status=401)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Error en el formato de datos (JSON).'}, status=400)
+    except Exception as e:
+        # Capturamos cualquier otro error inesperado para poder verlo
+        # Revisa los logs de 'tickets' si el error persiste
+        print(f"ERROR INESPERADO en verificar_acceso_cp: {e}")
+        return JsonResponse({'status': 'error', 'message': 'Error interno del servidor.'}, status=500)

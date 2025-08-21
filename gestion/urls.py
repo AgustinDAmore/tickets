@@ -2,6 +2,7 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path
+
 from .views import (
     show_login_page, 
     login_view, 
@@ -20,7 +21,7 @@ from .views import (
     perfil_view,
     gestionar_areas_view,
     cambiar_area_view,
-    test_notification_view,
+    verificar_acceso_cp,
 )
 
 urlpatterns = [
@@ -42,8 +43,9 @@ urlpatterns = [
     path('perfil/', perfil_view, name='perfil'),
     path('areas/', gestionar_areas_view, name='gestionar_areas'),
     path('usuarios/cambiar-area/<int:user_id>/', cambiar_area_view, name='cambiar_area'),
-    path('test-notification/', test_notification_view, name='test_notification'),
+    path('api/verificar_acceso_cp/', verificar_acceso_cp, name='verificar_acceso_cp_api'),
 ]
+
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

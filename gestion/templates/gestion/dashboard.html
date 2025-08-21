@@ -19,7 +19,6 @@
 </head>
 <body class="bg-gray-100">
 
-    <!-- Barra de Navegación -->
     <nav class="bg-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -36,15 +35,12 @@
         </div>
     </nav>
 
-    <!-- Contenido Principal -->
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
 
-        <!-- Título y Botones de Acción -->
         <div class="flex justify-between items-center flex-wrap gap-4 mb-6">
             <h2 class="text-3xl font-bold text-gray-800">{{ current_view_name }}</h2>
             <div class="flex items-center gap-2">
-                <!-- Botones para cambiar de vista (SOLO ADMINS) -->
-                {% if user.is_staff %}
+                {% if user_can_view_all_tickets %}
                     {% if view_mode == 'todos' %}
                         <a href="{% url 'dashboard' %}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">
                             Ver Mis Tickets
@@ -64,20 +60,17 @@
             </div>
         </div>
 
-        <!-- FORMULARIO DE BÚSQUEDA Y FILTROS -->
         <div class="bg-white rounded-lg shadow p-4 mb-6">
-            <form method="get" class="grid grid-cols-1 {% if user.is_staff and view_mode == 'todos' %}md:grid-cols-4{% else %}md:grid-cols-3{% endif %} gap-4">
+            <form method="get" class="grid grid-cols-1 {% if user_can_view_all_tickets and view_mode == 'todos' %}md:grid-cols-4{% else %}md:grid-cols-3{% endif %} gap-4">
                 
                 {% if view_mode == 'todos' %}
                 <input type="hidden" name="vista" value="todos">
                 {% endif %}
 
-                <!-- Campo de Búsqueda -->
                 <div class="md:col-span-1">
                     <input type="text" name="q" value="{{ search_query }}" placeholder="Buscar por ID, título..." class="w-full rounded-md border-gray-300">
                 </div>
                 
-                <!-- Filtro por Estado -->
                 <div class="md:col-span-1">
                     <select name="estado" class="w-full rounded-md border-gray-300">
                         <option value="">Todos los estados</option>
@@ -85,8 +78,7 @@
                     </select>
                 </div>
 
-                <!-- Filtro por Creador (SOLO EN LA VISTA DE TODOS LOS TICKETS) -->
-                {% if user.is_staff and view_mode == 'todos' %}
+                {% if user_can_view_all_tickets and view_mode == 'todos' %}
                 <div class="md:col-span-1">
                     <select name="creador" class="w-full rounded-md border-gray-300">
                         <option value="">Todos los creadores</option>
@@ -95,7 +87,6 @@
                 </div>
                 {% endif %}
 
-                <!-- Botones -->
                 <div class="md:col-span-1 flex items-center gap-2">
                     <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Buscar</button>
                     <a href="{% url 'dashboard' %}{% if view_mode == 'todos' %}?vista=todos{% endif %}" class="w-full text-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">Limpiar</a>
@@ -103,7 +94,6 @@
             </form>
         </div>
 
-        <!-- Tabla de Tickets -->
         <div class="bg-white shadow-lg rounded-lg overflow-hidden">
             <div class="px-6 py-4 border-b flex justify-between items-center">
                 <h3 class="text-xl font-semibold text-gray-800">Lista de Tickets</h3>

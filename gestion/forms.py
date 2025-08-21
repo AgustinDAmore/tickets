@@ -2,7 +2,7 @@
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, SetPasswordForm, PasswordChangeForm
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from .models import Ticket, Comentario, Aviso, Perfil, EstadoTicket, Area
 
 # --- Formulario para crear Áreas ---
@@ -17,28 +17,34 @@ class AreaForm(forms.ModelForm):
             'nombre': 'Nombre del Área',
         }
 
-# --- Formulario de Creación de Usuario (actualizado con Áreas) ---
+# --- Formulario de Creación de Usuario (actualizado con Áreas y Grupos) ---
 class CustomUserCreationForm(UserCreationForm):
-    es_administrador = forms.BooleanField(label="¿Es administrador?", required=False)
     area = forms.ModelChoiceField(
         queryset=Area.objects.all(),
         required=False,
         label="Asignar a Área",
         empty_label="Sin área asignada"
     )
+    
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.all(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label="Grupos"
+    )
 
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = UserCreationForm.Meta.fields + ('es_administrador', 'area')
+        fields = UserCreationForm.Meta.fields + ('area', 'groups',)
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.is_staff = self.cleaned_data.get("es_administrador", False)
         if commit:
             user.save()
             # Guardamos el área en el perfil del usuario
             user.perfil.area = self.cleaned_data.get('area')
             user.perfil.save()
+            user.groups.set(self.cleaned_data.get('groups'))
         return user
 
 # --- Formulario de Creación de Ticket (actualizado con Áreas) ---
