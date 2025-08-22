@@ -19,7 +19,6 @@
 </head>
 <body class="bg-gray-100">
 
-    <!-- Barra de Navegación -->
     <nav class="bg-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -36,7 +35,6 @@
         </div>
     </nav>
 
-    <!-- Formulario de Creación -->
     <main class="max-w-2xl mx-auto py-10 sm:px-6 lg:px-8">
         <div class="bg-white shadow-lg rounded-lg p-8">
             <h2 class="text-2xl font-semibold text-gray-800 mb-6">Crear Nuevo Usuario</h2>
@@ -44,7 +42,6 @@
             <form method="post">
                 {% csrf_token %}
                 
-                <!-- Django renderizará cada campo del formulario aquí -->
                 {% for field in form %}
                     <div class="form-field">
                         {{ field.label_tag }}

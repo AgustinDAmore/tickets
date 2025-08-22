@@ -15,8 +15,6 @@
     </style>
 </head>
 <body class="bg-gray-100">
-
-    <!-- Barra de Navegación -->
     <nav class="bg-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -32,11 +30,7 @@
             </div>
         </div>
     </nav>
-
-    <!-- Contenido Principal -->
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-
-        <!-- Tarjetas de Resumen (KPIs) -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div class="bg-white rounded-lg shadow p-5">
                 <h3 class="text-sm font-medium text-gray-500 truncate">Total Tickets</h3>
@@ -51,8 +45,6 @@
                 <p class="mt-1 text-3xl font-semibold text-gray-900">{{ usuarios_activos|default:0 }}</p>
             </div>
         </div>
-
-        <!-- FORMULARIO DE BÚSQUEDA Y FILTROS -->
         <div class="bg-white rounded-lg shadow p-4 mb-6">
             <form method="get" action="{% url 'todos_los_tickets' %}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="md:col-span-1">
@@ -88,8 +80,6 @@
                 </div>
             </form>
         </div>
-
-        <!-- Tabla de Tickets -->
         <div class="bg-white shadow-lg rounded-lg overflow-hidden">
             <div class="px-6 py-4 border-b">
                 <h3 class="text-xl font-semibold text-gray-800">Todos los Tickets del Sistema</h3>

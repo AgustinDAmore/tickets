@@ -149,7 +149,6 @@
     </main>
 
     <script>
-        // --- SCRIPT PARA OCULTAR/MOSTRAR DROPDOWNS ---
         function toggleDropdown(button) {
             const dropdown = button.nextElementSibling;
             document.querySelectorAll('[data-dropdown-container] .origin-top-right').forEach(d => {
@@ -171,8 +170,6 @@
                 }
             });
         });
-
-        // --- SCRIPT PARA BÚSQUEDA INSTANTÁNEA ---
         document.getElementById('searchInput').addEventListener('keyup', function() {
             const filter = this.value.toLowerCase();
             const tableBody = document.getElementById('userTableBody');

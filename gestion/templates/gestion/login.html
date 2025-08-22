@@ -6,9 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión - Sistema de Tickets</title>
     <link rel="icon" href="{% static 'gestion/favicon.ico' %}" type="image/x-icon">
-    <!-- Incluyendo Tailwind CSS para el diseño -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Usando la fuente Inter de Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,10 +23,8 @@
         </div>
 
         <form id="loginForm">
-            <!-- El token de Django sigue siendo necesario para el primer renderizado -->
             {% csrf_token %}
             
-            <!-- Campos de Usuario y Contraseña -->
             <div class="mb-4">
                 <label for="nombre_usuario" class="block text-gray-700 text-sm font-bold mb-2">
                     Nombre de Usuario
@@ -55,9 +51,6 @@
     </div>
 
     <script>
-        // --- SCRIPT ACTUALIZADO Y MÁS ROBUSTO ---
-
-        // Función para obtener el token CSRF directamente de las cookies
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -80,7 +73,6 @@
             const username = form.querySelector('#nombre_usuario').value;
             const password = form.querySelector('#password').value;
             
-            // Obtenemos el token de la cookie, que siempre está actualizado
             const csrfToken = getCookie('csrftoken');
 
             const data = {

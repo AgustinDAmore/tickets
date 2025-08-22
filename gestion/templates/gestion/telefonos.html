@@ -13,7 +13,7 @@
         .user-row { cursor: pointer; }
         .user-row:hover { background-color: #f9fafb; }
         .copied {
-            background-color: #d1fae5 !important; /* Verde claro de Tailwind */
+            background-color: #d1fae5 !important; 
             transition: background-color 0.2s;
         }
     </style>
@@ -87,7 +87,6 @@
                 }
             });
 
-            // --- Lógica de Copiar al Portapapeles ---
             for (let i = 0; i < tableRows.length; i++) {
                 let row = tableRows[i];
                 row.addEventListener('click', function() {
@@ -95,7 +94,6 @@
                     const userExtension = row.cells[1].textContent.trim();
                     const textToCopy = `${userName} | Interno: ${userExtension}`;
 
-                    // Usamos el método de 'execCommand' para mayor compatibilidad
                     const textArea = document.createElement("textarea");
                     textArea.value = textToCopy;
                     document.body.appendChild(textArea);
