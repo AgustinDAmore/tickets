@@ -1,4 +1,4 @@
-# /var/www/tickets/gestion/forms.py
+# /var/w ww/tickets/gestion/forms.py
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, SetPasswordForm, PasswordChangeForm
@@ -56,7 +56,6 @@ class TicketCreationForm(forms.ModelForm):
         required=True,
         widget=forms.Select(attrs={'class': 'form-field-input'})
     )
-    # Campo para subir múltiples archivos (CORREGIDO)
     adjuntos = forms.FileField(
         required=False,
         label="Adjuntar archivos (opcional)"
@@ -81,17 +80,30 @@ class TicketCreationForm(forms.ModelForm):
             'descripcion': 'Descripción del Problema',
         }
 
-# --- Formulario para Añadir Comentarios ---
+# --- Formulario para Añadir Comentarios (CORREGIDO Y FINAL) ---
 class CommentForm(forms.ModelForm):
+    adjuntos = forms.FileField(
+        required=False,
+        label="Adjuntar archivos",
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super(CommentForm, self).__init__(*args, **kwargs)
+        self.fields['adjuntos'].widget.attrs.update({
+            'multiple': True,
+            'class': 'form-field-input mt-2'
+        })
+
     class Meta:
         model = Comentario
-        fields = ['cuerpo_comentario']
+        fields = ['cuerpo_comentario', 'adjuntos']
         widgets = {
             'cuerpo_comentario': forms.Textarea(attrs={
                 'class': 'form-field-input', 'rows': 3, 'placeholder': 'Escribe tu comentario aquí...'
             }),
         }
         labels = {'cuerpo_comentario': ''}
+
 
 # --- Formulario para Cambiar Estado de Ticket ---
 class StatusChangeForm(forms.ModelForm):
@@ -110,7 +122,6 @@ class AdminPasswordChangeForm(SetPasswordForm):
 class PerfilUpdateForm(forms.ModelForm):
     class Meta:
         model = Perfil
-        # Aquí solo incluimos el campo que queremos que se pueda modificar.
         fields = ['numero_interno']
         labels = {
             'numero_interno': 'Nuevo Número de Interno/Teléfono'
@@ -143,3 +154,15 @@ class AreaChangeForm(forms.ModelForm):
         fields = ['area']
         labels = {'area': ''}
         widgets = {'area': forms.Select(attrs={'class': 'form-field-input'})}
+
+class UserGroupsForm(forms.ModelForm):
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Grupos"
+    )
+
+    class Meta:
+        model = User
+        fields = ['groups']

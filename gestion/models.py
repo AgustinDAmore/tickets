@@ -42,7 +42,6 @@ class Ticket(models.Model):
     usuario_creador = models.ForeignKey(User, on_delete=models.RESTRICT, related_name='tickets_creados')
     estado = models.ForeignKey(EstadoTicket, on_delete=models.RESTRICT)
     area_asignada = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_en_area')
-    # Añadimos este campo para saber quién está trabajando en el ticket
     usuario_asignado = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_asignados')
 
     def __str__(self):
@@ -65,9 +64,10 @@ class Aviso(models.Model):
 
 class ArchivoAdjunto(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='adjuntos')
+    # CAMBIO: Añadido campo para asociar a un comentario (opcional)
+    comentario = models.ForeignKey(Comentario, on_delete=models.CASCADE, related_name='adjuntos', null=True, blank=True)
     archivo = models.FileField(upload_to='adjuntos_tickets/')
     fecha_subida = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        # Devuelve solo el nombre del archivo, no la ruta completa
         return os.path.basename(self.archivo.name)

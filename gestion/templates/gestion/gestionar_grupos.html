@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Grupos - Sistema de Tickets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .form-field { margin-bottom: 1rem; }
+        .form-field label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151; }
+        .form-field ul { list-style-type: none; padding: 0; }
+        .form-field li { margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <a href="{% url 'dashboard' %}" class="flex-shrink-0 flex items-center">
+                    <h1 class="text-xl font-bold text-gray-800">Sistema de Tickets</h1>
+                </a>
+                <a href="{% url 'lista_usuarios' %}" class="text-gray-600 hover:text-gray-800 my-auto">Volver a Usuarios</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-2xl mx-auto py-10 sm:px-6 lg:px-8">
+        <div class="bg-white shadow-lg rounded-lg p-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-2">Gestionar Grupos</h2>
+            <p class="text-gray-600 mb-6">Estás gestionando los grupos para el usuario: <strong>{{ user_to_manage.username }}</strong></p>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-field">
+                    <label class="block mb-2 font-medium">Grupos</label>
+                    <ul>
+                        {% for group in form.groups %}
+                        <li>
+                            <label>
+                                {{ group.tag }} {{ group.choice_label }}
+                            </label>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% for error in form.groups.errors %}
+                        <p class="text-red-500 text-xs italic">{{ error }}</p>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-6">
+                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg">
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+</body>
+</html>

@@ -23,7 +23,7 @@ from .forms import (
     CustomUserCreationForm, TicketCreationForm, CommentForm, 
     StatusChangeForm, AdminPasswordChangeForm, AvisoForm,
     PerfilUpdateForm, UserPasswordChangeForm, AreaForm,
-    AreaChangeForm
+    AreaChangeForm, UserGroupsForm
 )
 
 audit_log = logging.getLogger('audit')
@@ -78,22 +78,18 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
         current_view_name = "Mis Tickets"
         user_area = request.user.perfil.area
         
-        # Un usuario ve los tickets que creó O los que están en su área
         if user_area:
             tickets = tickets.filter(
                 Q(usuario_creador=request.user) | Q(area_asignada=user_area)
             ).distinct()
         else:
-            # Si no tiene área, solo ve los que creó
             tickets = tickets.filter(usuario_creador=request.user)
 
     if search_query:
-        # --- CAMBIO APLICADO AQUÍ ---
-        # Ahora busca por título, ID y descripción del ticket.
         tickets = tickets.filter(
             Q(titulo__icontains=search_query) |
             Q(id__icontains=search_query) |
-            Q(descripcion__icontains=search_query) # Reemplaza 'descripcion' si tu campo se llama diferente
+            Q(descripcion__icontains=search_query)
         )
     
     if status_filter:
@@ -149,7 +145,6 @@ def gestionar_areas_view(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def crear_ticket_view(request: HttpRequest) -> HttpResponse:
-    """Muestra y procesa el formulario para crear un nuevo ticket, incluyendo archivos adjuntos."""
     if request.method == 'POST':
         form = TicketCreationForm(request.POST, request.FILES)
         if form.is_valid():
@@ -163,11 +158,10 @@ def crear_ticket_view(request: HttpRequest) -> HttpResponse:
             ticket.save()
 
             for f in request.FILES.getlist('adjuntos'):
-                ArchivoAdjunto.objects.create(ticket=ticket, archivo=f)
+                ArchivoAdjunto.objects.create(ticket=ticket, archivo=f, comentario=None)
 
             audit_log.info(f"TICKET CREADO: Usuario '{request.user.username}' creó el ticket #{ticket.id} '{ticket.titulo}'.")
 
-            # --- LÓGICA DE NOTIFICACIÓN CON MÁS DETALLES ---
             print(">>> INICIANDO PROCESO DE NOTIFICACIÓN <<<")
             area_asignada = ticket.area_asignada
             if area_asignada:
@@ -199,7 +193,6 @@ def crear_ticket_view(request: HttpRequest) -> HttpResponse:
                 print("El ticket no tiene un área asignada, no se enviarán notificaciones.")
             
             print(">>> FIN DEL PROCESO DE NOTIFICACIÓN <<<")
-            # --- FIN DE LA LÓGICA ---
 
             return redirect('dashboard')
     else:
@@ -210,16 +203,19 @@ def crear_ticket_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
     try:
-        ticket = Ticket.objects.get(id=ticket_id)
+        # Usamos prefetch_related para obtener los adjuntos de los comentarios de forma eficiente
+        ticket = Ticket.objects.prefetch_related('comentarios__adjuntos').get(id=ticket_id)
     except Ticket.DoesNotExist:
         return redirect('dashboard')
+        
     comment_form = CommentForm()
     status_form = StatusChangeForm(instance=ticket)
+
     if request.method == 'POST':
         if 'add_comment' in request.POST:
-            comment_form = CommentForm(request.POST)
+            # Pasamos request.FILES al formulario
+            comment_form = CommentForm(request.POST, request.FILES)
             if comment_form.is_valid():
-                # LÓGICA DE AUTO-ASIGNACIÓN
                 if not ticket.usuario_asignado and request.user.perfil.area == ticket.area_asignada:
                     ticket.usuario_asignado = request.user
                     ticket.save()
@@ -229,8 +225,18 @@ def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
                 new_comment.ticket = ticket
                 new_comment.usuario_autor = request.user
                 new_comment.save()
+
+                # Bucle para guardar los archivos adjuntos del comentario
+                for f in request.FILES.getlist('adjuntos'):
+                    ArchivoAdjunto.objects.create(
+                        ticket=ticket,
+                        comentario=new_comment,
+                        archivo=f
+                    )
+
                 audit_log.info(f"COMENTARIO AÑADIDO: Usuario '{request.user.username}' comentó en el ticket #{ticket.id}.")
                 return redirect('detalle_ticket', ticket_id=ticket.id)
+
         elif 'update_status' in request.POST:
             old_status = ticket.estado.nombre_estado
             status_form = StatusChangeForm(request.POST, instance=ticket)
@@ -239,6 +245,7 @@ def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
                 new_status = updated_ticket.estado.nombre_estado
                 audit_log.info(f"CAMBIO DE ESTADO: Usuario '{request.user.username}' cambió el estado del ticket #{ticket.id} de '{old_status}' a '{new_status}'.")
                 return redirect('detalle_ticket', ticket_id=ticket.id)
+
     context = {'ticket': ticket, 'comment_form': comment_form, 'status_form': status_form, 'user': request.user}
     return render(request, 'gestion/ticket_detalle.html', context)
     
@@ -249,13 +256,12 @@ def lista_usuarios_view(request: HttpRequest) -> HttpResponse:
     if not request.user.is_staff:
         return redirect('dashboard')
 
-    # Lógica para manejar cambios de área desde la tabla
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
         action = request.POST.get('action')
         user_to_change = User.objects.get(id=user_id)
 
-        if user_to_change != request.user: # Prevenir que un admin se modifique a sí mismo
+        if user_to_change != request.user:
             if action == 'change_area':
                 area_id = request.POST.get('area_id')
                 if area_id:
@@ -268,7 +274,6 @@ def lista_usuarios_view(request: HttpRequest) -> HttpResponse:
         
         return redirect('lista_usuarios')
 
-    # Lógica para mostrar la página
     usuarios = User.objects.select_related('perfil', 'perfil__area').prefetch_related('groups').all().order_by('username')
     all_areas = Area.objects.all().order_by('nombre')
     context = {
@@ -440,12 +445,31 @@ def cambiar_area_view(request: HttpRequest, user_id: int) -> HttpResponse:
     context = {'form': form, 'user_to_change': user_to_change}
     return render(request, 'gestion/cambiar_area.html', context)
 
+@login_required
+def gestionar_grupos_view(request: HttpRequest, user_id: int) -> HttpResponse:
+    if not request.user.is_staff:
+        return redirect('dashboard')
+    try:
+        user_to_manage = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return redirect('lista_usuarios')
+
+    if request.method == 'POST':
+        form = UserGroupsForm(request.POST, instance=user_to_manage)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Grupos para {user_to_manage.username} actualizados exitosamente!')
+            return redirect('lista_usuarios')
+    else:
+        form = UserGroupsForm(instance=user_to_manage)
+
+    context = {'form': form, 'user_to_manage': user_to_manage}
+    return render(request, 'gestion/gestionar_grupos.html', context)
+
 def custom_404_view(request):
-    """Renderiza la página de error 404 (Página no encontrada)."""
     return render(request, '404.html', status=404)
 
 def custom_500_view(request):
-    """Renderiza la página de error 500 (Error interno del servidor)."""
     return render(request, '500.html', status=500)
 
 ###########################################################################

@@ -22,6 +22,7 @@ from .views import (
     gestionar_areas_view,
     cambiar_area_view,
     verificar_acceso_cp,
+    gestionar_grupos_view,
 )
 
 urlpatterns = [
@@ -43,6 +44,7 @@ urlpatterns = [
     path('perfil/', perfil_view, name='perfil'),
     path('areas/', gestionar_areas_view, name='gestionar_areas'),
     path('usuarios/cambiar-area/<int:user_id>/', cambiar_area_view, name='cambiar_area'),
+    path('usuarios/gestionar-grupos/<int:user_id>/', gestionar_grupos_view, name='gestionar_grupos'),
     path('api/verificar_acceso_cp/', verificar_acceso_cp, name='verificar_acceso_cp_api'),
 ]
 
