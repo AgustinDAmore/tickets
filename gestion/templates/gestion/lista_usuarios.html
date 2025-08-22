@@ -44,6 +44,11 @@
                         </a>
                     </div>
                 </div>
+                
+                <div class="p-4 border-b">
+                    <input type="text" id="searchInput" placeholder="Buscar por nombre de usuario..." class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
                 <div class="overflow-x-auto">
                     <table class="min-w-full bg-white">
                         <thead class="bg-gray-50">
@@ -55,7 +60,7 @@
                                 <th class="py-3 px-6 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody id="userTableBody" class="divide-y divide-gray-200">
                             {% for u in usuarios %}
                             <tr>
                                 <td class="py-4 px-6 whitespace-nowrap text-sm font-medium text-gray-900">{{ u.username }}</td>
@@ -117,16 +122,22 @@
                                                         {% if u.is_active %}Deshabilitar{% else %}Habilitar{% endif %}
                                                     </button>
                                                 </form>
-                                                {% endif %}
                                                 <a href="{% url 'cambiar_contrasena' u.id %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem">
                                                     Cambiar Contraseña
                                                 </a>
+                                                {% endif %}
                                                 <a href="{% url 'gestionar_grupos' u.id %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem">
                                                     Gestionar Grupos
                                                 </a>
                                             </div>
                                         </div>
                                     </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-10 text-gray-500">
+                                    No se encontraron usuarios.
                                 </td>
                             </tr>
                             {% endfor %}
@@ -138,15 +149,14 @@
     </main>
 
     <script>
+        // --- SCRIPT PARA OCULTAR/MOSTRAR DROPDOWNS ---
         function toggleDropdown(button) {
             const dropdown = button.nextElementSibling;
-            // Ocultar todos los demás dropdowns abiertos
             document.querySelectorAll('[data-dropdown-container] .origin-top-right').forEach(d => {
                 if (d !== dropdown) {
                     d.classList.add('hidden');
                 }
             });
-            // Mostrar u ocultar el actual
             dropdown.classList.toggle('hidden');
         }
 
@@ -160,6 +170,25 @@
                     }
                 }
             });
+        });
+
+        // --- SCRIPT PARA BÚSQUEDA INSTANTÁNEA ---
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const filter = this.value.toLowerCase();
+            const tableBody = document.getElementById('userTableBody');
+            const rows = tableBody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const usernameCell = rows[i].getElementsByTagName('td')[0];
+                if (usernameCell) {
+                    const username = usernameCell.textContent || usernameCell.innerText;
+                    if (username.toLowerCase().indexOf(filter) > -1) {
+                        rows[i].style.display = "";
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
+            }
         });
     </script>
 

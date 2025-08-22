@@ -20,7 +20,7 @@ from webpush import send_user_notification
 
 from .models import Ticket, EstadoTicket, Aviso, Perfil, Area, ArchivoAdjunto
 from .forms import (
-    CustomUserCreationForm, TicketCreationForm, CommentForm, 
+    CustomUserCreationForm, TicketCreationForm, CommentForm,
     StatusChangeForm, AdminPasswordChangeForm, AvisoForm,
     PerfilUpdateForm, UserPasswordChangeForm, AreaForm,
     AreaChangeForm, UserGroupsForm
@@ -207,38 +207,61 @@ def crear_ticket_view(request: HttpRequest) -> HttpResponse:
 @login_required
 def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
     try:
-        # Usamos prefetch_related para obtener los adjuntos de los comentarios de forma eficiente
-        ticket = Ticket.objects.prefetch_related('comentarios__adjuntos').get(id=ticket_id)
+        ticket = Ticket.objects.select_related('estado', 'usuario_creador', 'area_asignada', 'usuario_asignado').get(id=ticket_id)
     except Ticket.DoesNotExist:
         return redirect('dashboard')
-        
+
+    # --- INICIO DE LA VALIDACIÓN DE PERMISOS ---
+    user = request.user
+    
+    # Condición 1: ¿Es admin o tiene permiso para ver todos los tickets?
+    can_view_all = user.is_staff or user.groups.filter(name='Ver todos los tickets').exists()
+    
+    # Condición 2: ¿Es el creador del ticket?
+    is_creator = ticket.usuario_creador == user
+    
+    # Condición 3: ¿Está asignado al ticket?
+    is_assigned = ticket.usuario_asignado == user
+    
+    # Condición 4: ¿Pertenece al área del ticket?
+    is_in_area = False
+    try:
+        # Verificamos que el usuario tenga un perfil y un área asignada.
+        if hasattr(user, 'perfil') and user.perfil.area:
+            if user.perfil.area == ticket.area_asignada:
+                is_in_area = True
+    except Perfil.DoesNotExist:
+        # Si el usuario no tiene perfil, no puede pertenecer a un área.
+        pass
+
+    # Si NINGUNA de las condiciones se cumple, el acceso es denegado.
+    if not (can_view_all or is_creator or is_assigned or is_in_area):
+        messages.error(request, "No tienes permiso para ver este ticket.")
+        return redirect('dashboard')
+    # --- FIN DE LA VALIDACIÓN DE PERMISOS ---
+
     comment_form = CommentForm()
     status_form = StatusChangeForm(instance=ticket)
 
     if request.method == 'POST':
         if 'add_comment' in request.POST:
-            # Pasamos request.FILES al formulario
             comment_form = CommentForm(request.POST, request.FILES)
             if comment_form.is_valid():
-                if not ticket.usuario_asignado and request.user.perfil.area == ticket.area_asignada:
-                    ticket.usuario_asignado = request.user
+                # Auto-asignación si el usuario es del área y el ticket no tiene a nadie asignado
+                if not ticket.usuario_asignado and is_in_area:
+                    ticket.usuario_asignado = user
                     ticket.save()
-                    audit_log.info(f"TICKET ASIGNADO: Usuario '{request.user.username}' se auto-asignó el ticket #{ticket.id}.")
+                    audit_log.info(f"TICKET ASIGNADO: Usuario '{user.username}' se auto-asignó el ticket #{ticket.id}.")
 
                 new_comment = comment_form.save(commit=False)
                 new_comment.ticket = ticket
-                new_comment.usuario_autor = request.user
+                new_comment.usuario_autor = user
                 new_comment.save()
 
-                # Bucle para guardar los archivos adjuntos del comentario
                 for f in request.FILES.getlist('adjuntos'):
-                    ArchivoAdjunto.objects.create(
-                        ticket=ticket,
-                        comentario=new_comment,
-                        archivo=f
-                    )
+                    ArchivoAdjunto.objects.create(ticket=ticket, comentario=new_comment, archivo=f)
 
-                audit_log.info(f"COMENTARIO AÑADIDO: Usuario '{request.user.username}' comentó en el ticket #{ticket.id}.")
+                audit_log.info(f"COMENTARIO AÑADIDO: Usuario '{user.username}' comentó en el ticket #{ticket.id}.")
                 return redirect('detalle_ticket', ticket_id=ticket.id)
 
         elif 'update_status' in request.POST:
@@ -247,10 +270,10 @@ def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
             if status_form.is_valid():
                 updated_ticket = status_form.save()
                 new_status = updated_ticket.estado.nombre_estado
-                audit_log.info(f"CAMBIO DE ESTADO: Usuario '{request.user.username}' cambió el estado del ticket #{ticket.id} de '{old_status}' a '{new_status}'.")
+                audit_log.info(f"CAMBIO DE ESTADO: Usuario '{user.username}' cambió el estado del ticket #{ticket.id} de '{old_status}' a '{new_status}'.")
                 return redirect('detalle_ticket', ticket_id=ticket.id)
-
-    context = {'ticket': ticket, 'comment_form': comment_form, 'status_form': status_form, 'user': request.user}
+    
+    context = {'ticket': ticket, 'comment_form': comment_form, 'status_form': status_form, 'user': user}
     return render(request, 'gestion/ticket_detalle.html', context)
     
 # --- VISTAS DE GESTIÓN DE USUARIOS Y PERFIL ---
@@ -278,11 +301,19 @@ def lista_usuarios_view(request: HttpRequest) -> HttpResponse:
         
         return redirect('lista_usuarios')
 
+    # Lógica de búsqueda para peticiones GET
+    search_query = request.GET.get('q', '')
+    
     usuarios = User.objects.select_related('perfil', 'perfil__area').prefetch_related('groups').all().order_by('username')
+
+    if search_query:
+        usuarios = usuarios.filter(username__icontains=search_query)
+
     all_areas = Area.objects.all().order_by('nombre')
     context = {
         'usuarios': usuarios,
-        'all_areas': all_areas
+        'all_areas': all_areas,
+        'search_query': search_query,
     }
     return render(request, 'gestion/lista_usuarios.html', context)
 
