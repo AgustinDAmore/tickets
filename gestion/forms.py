@@ -5,7 +5,6 @@ from django.contrib.auth.forms import UserCreationForm, SetPasswordForm, Passwor
 from django.contrib.auth.models import User, Group
 from .models import Ticket, Comentario, Aviso, Perfil, EstadoTicket, Area
 
-# --- Formulario para crear Áreas ---
 class AreaForm(forms.ModelForm):
     class Meta:
         model = Area
@@ -17,7 +16,6 @@ class AreaForm(forms.ModelForm):
             'nombre': 'Nombre del Área',
         }
 
-# --- Formulario de Creación de Usuario (actualizado con Áreas y Grupos) ---
 class CustomUserCreationForm(UserCreationForm):
     area = forms.ModelChoiceField(
         queryset=Area.objects.all(),
@@ -42,13 +40,11 @@ class CustomUserCreationForm(UserCreationForm):
         user.username = user.username.lower()
         if commit:
             user.save()
-            # Guardamos el área en el perfil del usuario
             user.perfil.area = self.cleaned_data.get('area')
             user.perfil.save()
             user.groups.set(self.cleaned_data.get('groups'))
         return user
 
-# --- Formulario de Creación de Ticket (actualizado con Áreas) ---
 class TicketCreationForm(forms.ModelForm):
     area_asignada = forms.ModelChoiceField(
         queryset=Area.objects.all(),
@@ -81,7 +77,6 @@ class TicketCreationForm(forms.ModelForm):
             'descripcion': 'Descripción del Problema',
         }
 
-# --- Formulario para Añadir Comentarios (CORREGIDO Y FINAL) ---
 class CommentForm(forms.ModelForm):
     adjuntos = forms.FileField(
         required=False,
@@ -106,7 +101,6 @@ class CommentForm(forms.ModelForm):
         labels = {'cuerpo_comentario': ''}
 
 
-# --- Formulario para Cambiar Estado de Ticket ---
 class StatusChangeForm(forms.ModelForm):
     class Meta:
         model = Ticket
@@ -114,7 +108,6 @@ class StatusChangeForm(forms.ModelForm):
         widgets = {'estado': forms.Select(attrs={'class': 'form-field-input'})}
         labels = {'estado': 'Cambiar Estado del Ticket'}
 
-# --- Formularios de Gestión de Usuarios ---
 class AdminPasswordChangeForm(SetPasswordForm):
     class Meta:
         model = User
@@ -138,7 +131,6 @@ class UserPasswordChangeForm(PasswordChangeForm):
         self.fields['new_password1'].widget.attrs.update({'class': 'form-field-input'})
         self.fields['new_password2'].widget.attrs.update({'class': 'form-field-input'})
 
-# --- Formulario para Crear Avisos ---
 class AvisoForm(forms.ModelForm):
     class Meta:
         model = Aviso

@@ -64,7 +64,6 @@ class Aviso(models.Model):
 
 class ArchivoAdjunto(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='adjuntos')
-    # CAMBIO: Añadido campo para asociar a un comentario (opcional)
     comentario = models.ForeignKey(Comentario, on_delete=models.CASCADE, related_name='adjuntos', null=True, blank=True)
     archivo = models.FileField(upload_to='adjuntos_tickets/')
     fecha_subida = models.DateTimeField(auto_now_add=True)

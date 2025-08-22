@@ -1,30 +1,34 @@
 # /var/www/tickets/gestion/views.py
 
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login, logout, get_user_model, update_session_auth_hash
-from django.http import HttpResponse, HttpRequest, JsonResponse
-from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Q
-import logging
-import os
 import json
 import csv
 import logging
+import os
+import re
+from collections import Counter
+from datetime import timedelta
 
-from django.http import HttpResponse
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout, get_user_model, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q, Count, Avg, F
+from django.http import HttpResponse, HttpRequest, JsonResponse
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+
 from webpush import send_user_notification
 
-from .models import Ticket, EstadoTicket, Aviso, Perfil, Area, ArchivoAdjunto
 from .forms import (
     CustomUserCreationForm, TicketCreationForm, CommentForm,
     StatusChangeForm, AdminPasswordChangeForm, AvisoForm,
+
     PerfilUpdateForm, UserPasswordChangeForm, AreaForm,
     AreaChangeForm, UserGroupsForm
 )
+from .models import Ticket, EstadoTicket, Aviso, Perfil, Area, ArchivoAdjunto
 
 audit_log = logging.getLogger('audit')
 User = get_user_model()
@@ -58,8 +62,6 @@ def logout_view(request: HttpRequest) -> HttpResponse:
     audit_log.info(f"CIERRE DE SESIÓN: Usuario '{user.username}' ha cerrado sesión.")
     logout(request)
     return redirect('show_login')
-
-# --- VISTA DEL DASHBOARD (CORREGIDA) ---
 
 @login_required
 def dashboard_view(request: HttpRequest) -> HttpResponse:
@@ -122,7 +124,6 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
     
     return render(request, 'gestion/dashboard.html', context)
 
-# --- VISTAS DE GESTIÓN DE ÁREAS (SOLO ADMINS) ---
 
 @login_required
 def gestionar_areas_view(request: HttpRequest) -> HttpResponse:
@@ -145,7 +146,6 @@ def gestionar_areas_view(request: HttpRequest) -> HttpResponse:
     }
     return render(request, 'gestion/gestionar_areas.html', context)
 
-# --- VISTAS DE GESTIÓN DE TICKETS ---
 
 @login_required
 def crear_ticket_view(request: HttpRequest) -> HttpResponse:
@@ -211,34 +211,25 @@ def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
     except Ticket.DoesNotExist:
         return redirect('dashboard')
 
-    # --- INICIO DE LA VALIDACIÓN DE PERMISOS ---
     user = request.user
     
-    # Condición 1: ¿Es admin o tiene permiso para ver todos los tickets?
     can_view_all = user.is_staff or user.groups.filter(name='Ver todos los tickets').exists()
     
-    # Condición 2: ¿Es el creador del ticket?
     is_creator = ticket.usuario_creador == user
     
-    # Condición 3: ¿Está asignado al ticket?
     is_assigned = ticket.usuario_asignado == user
     
-    # Condición 4: ¿Pertenece al área del ticket?
     is_in_area = False
     try:
-        # Verificamos que el usuario tenga un perfil y un área asignada.
         if hasattr(user, 'perfil') and user.perfil.area:
             if user.perfil.area == ticket.area_asignada:
                 is_in_area = True
     except Perfil.DoesNotExist:
-        # Si el usuario no tiene perfil, no puede pertenecer a un área.
         pass
 
-    # Si NINGUNA de las condiciones se cumple, el acceso es denegado.
     if not (can_view_all or is_creator or is_assigned or is_in_area):
         messages.error(request, "No tienes permiso para ver este ticket.")
         return redirect('dashboard')
-    # --- FIN DE LA VALIDACIÓN DE PERMISOS ---
 
     comment_form = CommentForm()
     status_form = StatusChangeForm(instance=ticket)
@@ -276,7 +267,6 @@ def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
     context = {'ticket': ticket, 'comment_form': comment_form, 'status_form': status_form, 'user': user}
     return render(request, 'gestion/ticket_detalle.html', context)
     
-# --- VISTAS DE GESTIÓN DE USUARIOS Y PERFIL ---
 
 @login_required
 def lista_usuarios_view(request: HttpRequest) -> HttpResponse:
@@ -301,7 +291,6 @@ def lista_usuarios_view(request: HttpRequest) -> HttpResponse:
         
         return redirect('lista_usuarios')
 
-    # Lógica de búsqueda para peticiones GET
     search_query = request.GET.get('q', '')
     
     usuarios = User.objects.select_related('perfil', 'perfil__area').prefetch_related('groups').all().order_by('username')
@@ -395,8 +384,6 @@ def perfil_view(request: HttpRequest) -> HttpResponse:
     context = {'profile_form': profile_form, 'password_form': password_form}
     return render(request, 'gestion/perfil.html', context)
 
-# --- VISTAS DE AVISOS ---
-
 @login_required
 def crear_aviso_view(request: HttpRequest) -> HttpResponse:
     if not request.user.groups.filter(name='Enviar Avisos').exists():
@@ -425,7 +412,6 @@ def lista_avisos_view(request: HttpRequest) -> HttpResponse:
     }
     return render(request, 'gestion/lista_avisos.html', context)
 
-# --- VISTA DE LOGS (SOLO ADMINS) ---
 
 @login_required
 def ver_logs_view(request: HttpRequest) -> HttpResponse:
@@ -440,7 +426,6 @@ def ver_logs_view(request: HttpRequest) -> HttpResponse:
         log_lines = ["El archivo de auditoría no ha sido creado todavía."]
     return render(request, 'gestion/ver_logs.html', {'log_lines': log_lines})
 
-# --- VISTA DE DIRECTORIO TELEFÓNICO ---
 @login_required
 def telefonos_view(request: HttpRequest) -> HttpResponse:
     directorio = []
@@ -503,6 +488,9 @@ def gestionar_grupos_view(request: HttpRequest, user_id: int) -> HttpResponse:
 
 @login_required
 def informes_view(request: HttpRequest) -> HttpResponse:
+    """
+    Vista mejorada para generar un informe completo del sistema de tickets.
+    """
     if not request.user.groups.filter(name='Informe').exists():
         return redirect('dashboard')
 
@@ -511,23 +499,62 @@ def informes_view(request: HttpRequest) -> HttpResponse:
     tickets_aceptados = Ticket.objects.filter(estado__nombre_estado='Aceptado').count()
     tickets_finalizados = Ticket.objects.filter(estado__nombre_estado='Finalizado').count()
     usuarios_activos = User.objects.filter(is_active=True).count()
+    tickets_sin_finalizar = tickets_aceptados + tickets_pendientes
 
-    porcentaje_tickets_pendientes = (tickets_pendientes/total_tickets)*100
-    porcentaje_tickets_aceptados = (tickets_aceptados/total_tickets)*100
-    porcentaje_tickets_finalizados = (tickets_finalizados/total_tickets)*100
-    porcentaje_tickets_sin_finalizar = porcentaje_tickets_aceptados + porcentaje_tickets_pendientes
+    if total_tickets > 0:
+        porcentaje_tickets_pendientes = round((tickets_pendientes / total_tickets) * 100, 2)
+        porcentaje_tickets_aceptados = round((tickets_aceptados / total_tickets) * 100, 2)
+        porcentaje_tickets_finalizados = round((tickets_finalizados / total_tickets) * 100, 2)
+        porcentaje_tickets_sin_finalizar = round((tickets_sin_finalizar / total_tickets) * 100, 2)
+    else:
+        porcentaje_tickets_pendientes = 0
+        porcentaje_tickets_aceptados = 0
+        porcentaje_tickets_finalizados = 0
+        porcentaje_tickets_sin_finalizar = 0
+
+    tickets_asignados_por_area = Ticket.objects.filter(area_asignada__isnull=False) \
+        .values('area_asignada__nombre') \
+        .annotate(total=Count('id')) \
+        .order_by('-total')
+
+    tiempo_promedio_resolucion_area = Ticket.objects.filter(estado__nombre_estado='Finalizado', area_asignada__isnull=False) \
+        .values('area_asignada__nombre') \
+        .annotate(tiempo_promedio=Avg(F('fecha_actualizacion') - F('fecha_creacion'))) \
+        .order_by('tiempo_promedio')
+
+    tickets_resueltos_por_usuario = Ticket.objects.filter(estado__nombre_estado='Finalizado', usuario_asignado__isnull=False) \
+        .values('usuario_asignado__username') \
+        .annotate(total=Count('id')) \
+        .order_by('-total')[:10]
+
+    fecha_limite = timezone.now() - timedelta(days=5)
+    tickets_estancados = Ticket.objects.exclude(estado__nombre_estado='Finalizado') \
+        .filter(fecha_actualizacion__lte=fecha_limite) \
+        .order_by('fecha_actualizacion')
+
+    titulos = Ticket.objects.values_list('titulo', flat=True)
+    texto_completo = " ".join(titulos).lower()
+    palabras = re.findall(r'\b\w+\b', texto_completo)
+    stopwords = ['de', 'la', 'el', 'en', 'y', 'a', 'los', 'del', 'con', 'por', 'para', 'un', 'una', 'se', 'no', 'que', 'es', 'este', 'esta']
+    palabras_filtradas = [p for p in palabras if p.isalpha() and p not in stopwords and len(p) > 2]
+    conteo_palabras = Counter(palabras_filtradas).most_common(10)
 
     context = {
         'total_tickets': total_tickets,
-        'porcentaje_tickets_pendientes': porcentaje_tickets_pendientes,
         'tickets_pendientes': tickets_pendientes,
-        'porcentaje_tickets_aceptados': porcentaje_tickets_aceptados,
+        'porcentaje_tickets_pendientes': porcentaje_tickets_pendientes,
         'tickets_aceptados': tickets_aceptados,
-        'porcentaje_tickets_finalizados': porcentaje_tickets_finalizados,
-        'porcentaje_tickets_sin_finalizar': porcentaje_tickets_sin_finalizar,
-        'tickets_sin_finalizar': tickets_aceptados+tickets_pendientes,
+        'porcentaje_tickets_aceptados': porcentaje_tickets_aceptados,
         'tickets_finalizados': tickets_finalizados,
+        'porcentaje_tickets_finalizados': porcentaje_tickets_finalizados,
+        'tickets_sin_finalizar': tickets_sin_finalizar,
+        'porcentaje_tickets_sin_finalizar': porcentaje_tickets_sin_finalizar,
         'usuarios_activos': usuarios_activos,
+        'tickets_asignados_por_area': tickets_asignados_por_area,
+        'tiempo_promedio_resolucion_area': tiempo_promedio_resolucion_area,
+        'tickets_resueltos_por_usuario': tickets_resueltos_por_usuario,
+        'tickets_estancados': tickets_estancados,
+        'conteo_palabras': conteo_palabras,
     }
     return render(request, 'gestion/informes.html', context)
 
@@ -538,9 +565,9 @@ def custom_404_view(request):
 def custom_500_view(request):
     return render(request, '500.html', status=500)
 
-###########################################################################
-# Servicios
-###########################################################################
+                    #############
+                    # Servicios #
+                    #############
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
@@ -550,7 +577,6 @@ def verificar_acceso_cp(request):
         return JsonResponse({'status': 'error', 'message': 'Método no permitido.'}, status=405)
 
     try:
-        # Leemos el cuerpo de la petición
         data = json.loads(request.body)
         username = data.get('username')
         password = data.get('password')
@@ -558,14 +584,10 @@ def verificar_acceso_cp(request):
         if not username or not password:
             return JsonResponse({'status': 'error', 'message': 'Faltan credenciales.'}, status=400)
 
-        # --- BÚSQUEDA DE USUARIO A PRUEBA DE ERRORES ---
-        # Buscamos el usuario por su username, sin distinguir mayúsculas/minúsculas
         user = User.objects.filter(username__iexact=username).first()
 
-        # Verificamos si el usuario existe Y si la contraseña es correcta
         if user and user.check_password(password):
             if user.is_active:
-                # Si las credenciales son correctas, verificamos el permiso
                 if user.groups.filter(name='CP Access').exists():
                     return JsonResponse({'status': 'ok', 'message': 'Acceso concedido.'})
                 else:
@@ -573,13 +595,10 @@ def verificar_acceso_cp(request):
             else:
                 return JsonResponse({'status': 'error', 'message': 'La cuenta de usuario está inactiva.'}, status=403)
         else:
-            # Si el usuario no existe o la contraseña no coincide
             return JsonResponse({'status': 'error', 'message': 'Credenciales inválidas.'}, status=401)
 
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Error en el formato de datos (JSON).'}, status=400)
     except Exception as e:
-        # Capturamos cualquier otro error inesperado para poder verlo
-        # Revisa los logs de 'tickets' si el error persiste
         print(f"ERROR INESPERADO en verificar_acceso_cp: {e}")
         return JsonResponse({'status': 'error', 'message': 'Error interno del servidor.'}, status=500)

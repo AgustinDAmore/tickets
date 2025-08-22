@@ -1,4 +1,6 @@
 {% load static %}
+{% load gestion_extras %}
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -34,27 +36,145 @@
                 <p class="mt-1 text-3xl font-semibold text-gray-900">{{ total_tickets }}</p>
             </div>
             <div class="bg-white rounded-lg shadow p-5">
-                <h3 class="text-sm font-medium text-gray-500 truncate">Tickets Pendientes</h3>
-                <p class="mt-1 text-3xl font-semibold text-red-600">{{ tickets_pendientes }} = {{porcentaje_tickets_pendientes}}%</p>
-            </div>
-            <div class="bg-white rounded-lg shadow p-5">
-                <h3 class="text-sm font-medium text-gray-500 truncate">Tickets Aceptados</h3>
-                <p class="mt-1 text-3xl font-semibold text-yellow-600">{{ tickets_aceptados }} = {{porcentaje_tickets_aceptados}}%</p>
-            </div>
-            <div class="bg-white rounded-lg shadow p-5">
-                <h3 class="text-sm font-medium text-gray-500 truncate">Tickets sin finalizar</h3>
-                <p class="mt-1 text-3xl font-semibold text-orange-600">{{ tickets_sin_finalizar }} = {{porcentaje_tickets_sin_finalizar}}%</p>
+                <h3 class="text-sm font-medium text-gray-500 truncate">Tickets Sin Finalizar</h3>
+                <p class="mt-1 text-3xl font-semibold text-orange-600">{{ tickets_sin_finalizar }} ({{porcentaje_tickets_sin_finalizar}}%)</p>
             </div>
             <div class="bg-white rounded-lg shadow p-5">
                 <h3 class="text-sm font-medium text-gray-500 truncate">Tickets Finalizados</h3>
-                <p class="mt-1 text-3xl font-semibold text-green-600">{{ tickets_finalizados }} = {{porcentaje_tickets_finalizados}}%</p>
-            </div>
-            <div class="bg-white rounded-lg shadow p-5">
-                <h3 class="text-sm font-medium text-gray-500 truncate">Usuarios Activos</h3>
-                <p class="mt-1 text-3xl font-semibold text-gray-900">{{ usuarios_activos }}</p>
+                <p class="mt-1 text-3xl font-semibold text-green-600">{{ tickets_finalizados }} ({{porcentaje_tickets_finalizados}}%)</p>
             </div>
         </div>
 
+        <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <div>
+                <div class="bg-white rounded-lg shadow p-6 mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Carga de Tickets por Área</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Área</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for area in tickets_asignados_por_area %}
+                                <tr>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ area.area_asignada__nombre }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">{{ area.total }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">No hay datos.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-semibold text-red-700 mb-4">Tickets Estancados (> 5 días)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Últ. Act.</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for ticket in tickets_estancados %}
+                                <tr>
+                                    <td class="px-6 py-4 text-sm font-medium">
+                                        <a href="{% url 'detalle_ticket' ticket.id %}" class="text-blue-600 hover:underline">#{{ ticket.id }}</a>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">{{ ticket.titulo }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">{{ ticket.fecha_actualizacion|date:"d/m/Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">¡Felicidades! No hay tickets estancados.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="bg-white rounded-lg shadow p-6 mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Eficiencia por Área (Resolución)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Área</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tiempo Promedio</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for area in tiempo_promedio_resolucion_area %}
+                                <tr>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ area.area_asignada__nombre }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">{{ area.tiempo_promedio|format_timedelta }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">No hay datos.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Top 10: Usuarios con más Tickets Resueltos</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Finalizados</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for usuario in tickets_resueltos_por_usuario %}
+                                <tr>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ usuario.usuario_asignado__username }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">{{ usuario.total }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">No hay datos.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                 <div class="bg-white rounded-lg shadow p-6 mt-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Temas Frecuentes (Palabras Clave)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Palabra</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frecuencia</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for palabra, conteo in conteo_palabras %}
+                                <tr>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ palabra }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">{{ conteo }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">No hay datos.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     </main>
 </body>
 </html>
