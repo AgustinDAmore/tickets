@@ -100,6 +100,8 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
 
     tickets = tickets.order_by('-fecha_creacion')
     
+    user_can_see_informe = request.user.groups.filter(name='Informe').exists()
+
     context = {
         'user': request.user,
         'tickets': tickets,
@@ -111,6 +113,7 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
         'current_view_name': current_view_name,
         'view_mode': view_mode,
         'user_can_view_all_tickets': user_can_view_all_tickets,
+        'user_can_see_informe': user_can_see_informe,
     }
     
     if user_can_view_all_tickets:
@@ -465,6 +468,37 @@ def gestionar_grupos_view(request: HttpRequest, user_id: int) -> HttpResponse:
 
     context = {'form': form, 'user_to_manage': user_to_manage}
     return render(request, 'gestion/gestionar_grupos.html', context)
+
+@login_required
+def informes_view(request: HttpRequest) -> HttpResponse:
+    if not request.user.groups.filter(name='Informe').exists():
+        return redirect('dashboard')
+
+    total_tickets = Ticket.objects.count()
+    tickets_pendientes = Ticket.objects.filter(estado__nombre_estado='Pendiente').count()
+    tickets_aceptados = Ticket.objects.filter(estado__nombre_estado='Aceptado').count()
+    tickets_finalizados = Ticket.objects.filter(estado__nombre_estado='Finalizado').count()
+    usuarios_activos = User.objects.filter(is_active=True).count()
+
+    porcentaje_tickets_pendientes = (tickets_pendientes/total_tickets)*100
+    porcentaje_tickets_aceptados = (tickets_aceptados/total_tickets)*100
+    porcentaje_tickets_finalizados = (tickets_finalizados/total_tickets)*100
+    porcentaje_tickets_sin_finalizar = porcentaje_tickets_aceptados + porcentaje_tickets_pendientes
+
+    context = {
+        'total_tickets': total_tickets,
+        'porcentaje_tickets_pendientes': porcentaje_tickets_pendientes,
+        'tickets_pendientes': tickets_pendientes,
+        'porcentaje_tickets_aceptados': porcentaje_tickets_aceptados,
+        'tickets_aceptados': tickets_aceptados,
+        'porcentaje_tickets_finalizados': porcentaje_tickets_finalizados,
+        'porcentaje_tickets_sin_finalizar': porcentaje_tickets_sin_finalizar,
+        'tickets_sin_finalizar': tickets_aceptados+tickets_pendientes,
+        'tickets_finalizados': tickets_finalizados,
+        'usuarios_activos': usuarios_activos,
+    }
+    return render(request, 'gestion/informes.html', context)
+
 
 def custom_404_view(request):
     return render(request, '404.html', status=404)

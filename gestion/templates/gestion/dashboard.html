@@ -1,9 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Sistema de Tickets</title>
+    <link rel="icon" href="{% static 'gestion/favicon.ico' %}" type="image/x-icon">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -104,6 +106,9 @@
                     <a href="{% url 'lista_usuarios' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Gestionar Usuarios</a>
                     <a href="{% url 'ver_logs' %}" class="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded-lg">Ver Logs</a>
                      {% endif %}
+                    {% if user_can_see_informe %}
+                    <a href="{% url 'informes' %}" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg">Informes</a>
+                    {% endif %}
                 </div>
             </div>
             <div class="overflow-x-auto">

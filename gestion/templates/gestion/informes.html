@@ -1,0 +1,60 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informes - Sistema de Tickets</title>
+    <link rel="icon" href="{% static 'gestion/favicon.ico' %}" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <a href="{% url 'dashboard' %}" class="flex-shrink-0 flex items-center">
+                    <h1 class="text-xl font-bold text-gray-800">Sistema de Tickets</h1>
+                </a>
+                <a href="{% url 'dashboard' %}" class="text-gray-600 hover:text-gray-800 my-auto">Volver al Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Informes del Sistema</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow p-5">
+                <h3 class="text-sm font-medium text-gray-500 truncate">Total de Tickets</h3>
+                <p class="mt-1 text-3xl font-semibold text-gray-900">{{ total_tickets }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-5">
+                <h3 class="text-sm font-medium text-gray-500 truncate">Tickets Pendientes</h3>
+                <p class="mt-1 text-3xl font-semibold text-red-600">{{ tickets_pendientes }} = {{porcentaje_tickets_pendientes}}%</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-5">
+                <h3 class="text-sm font-medium text-gray-500 truncate">Tickets Aceptados</h3>
+                <p class="mt-1 text-3xl font-semibold text-yellow-600">{{ tickets_aceptados }} = {{porcentaje_tickets_aceptados}}%</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-5">
+                <h3 class="text-sm font-medium text-gray-500 truncate">Tickets sin finalizar</h3>
+                <p class="mt-1 text-3xl font-semibold text-orange-600">{{ tickets_sin_finalizar }} = {{porcentaje_tickets_sin_finalizar}}%</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-5">
+                <h3 class="text-sm font-medium text-gray-500 truncate">Tickets Finalizados</h3>
+                <p class="mt-1 text-3xl font-semibold text-green-600">{{ tickets_finalizados }} = {{porcentaje_tickets_finalizados}}%</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-5">
+                <h3 class="text-sm font-medium text-gray-500 truncate">Usuarios Activos</h3>
+                <p class="mt-1 text-3xl font-semibold text-gray-900">{{ usuarios_activos }}</p>
+            </div>
+        </div>
+
+    </main>
+</body>
+</html>
