@@ -40,6 +40,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
         data = json.loads(request.body)
         username = data.get('nombre_usuario')
         password = data.get('password')
+        username = username.lower()
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)

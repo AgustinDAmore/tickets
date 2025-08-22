@@ -39,6 +39,7 @@ class CustomUserCreationForm(UserCreationForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
+        user.username = user.username.lower()
         if commit:
             user.save()
             # Guardamos el área en el perfil del usuario
