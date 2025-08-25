@@ -1,9 +1,10 @@
-# /var/www/tickets/gestion/models.py
+# /var/w ww/tickets/gestion/models.py
 
 from django.db import models
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 import os
 
 User = settings.AUTH_USER_MODEL
@@ -39,6 +40,7 @@ class Ticket(models.Model):
     descripcion = models.TextField()
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
+    fecha_ultima_modificacion = models.DateTimeField(default=timezone.now)
     usuario_creador = models.ForeignKey(User, on_delete=models.RESTRICT, related_name='tickets_creados')
     estado = models.ForeignKey(EstadoTicket, on_delete=models.RESTRICT)
     area_asignada = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_en_area')
@@ -52,6 +54,13 @@ class Comentario(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='comentarios')
     usuario_autor = models.ForeignKey(User, on_delete=models.RESTRICT)
+
+@receiver(post_save, sender=Comentario)
+def actualizar_fecha_modificacion_ticket(sender, instance, created, **kwargs):
+    if created:
+        ticket = instance.ticket
+        ticket.fecha_ultima_modificacion = timezone.now()
+        ticket.save()
 
 class Aviso(models.Model):
     titulo = models.CharField(max_length=200)

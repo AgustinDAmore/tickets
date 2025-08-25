@@ -1,0 +1,92 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil de {{ usuario_perfil.username }} - Sistema de Tickets</title>
+    <link rel="icon" href="{% static 'gestion/favicon.ico' %}" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <a href="{% url 'dashboard' %}" class="flex-shrink-0 flex items-center">
+                    <h1 class="text-xl font-bold text-gray-800">Sistema de Tickets</h1>
+                </a>
+                <a href="{% url 'dashboard' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold my-auto py-2 px-4 rounded-lg">
+                    Volver al Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto py-10 sm:px-6 lg:px-8">
+        <div class="bg-white shadow-lg rounded-lg p-6 mb-8">
+            <div class="flex items-center space-x-6">
+                <div class="flex-shrink-0">
+                    <div class="h-20 w-20 rounded-full bg-indigo-100 flex items-center justify-center">
+                        <span class="text-3xl font-bold text-indigo-600">{{ usuario_perfil.username|first|upper }}</span>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900">{{ usuario_perfil.get_full_name|default:usuario_perfil.username }}</h2>
+                    <p class="text-gray-600">@{{ usuario_perfil.username }}</p>
+                    <div class="mt-2 flex items-center text-sm text-gray-500 space-x-4">
+                        {% if perfil.area %}<span>Área: <strong>{{ perfil.area.nombre }}</strong></span>{% endif %}
+                        {% if perfil.numero_interno %}<span>Interno: <strong>{{ perfil.numero_interno }}</strong></span>{% endif %}
+                        {% if usuario_perfil.email %}<span>Email: <strong>{{ usuario_perfil.email }}</strong></span>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-5">
+                <h3 class="text-sm font-medium text-gray-500 truncate">Tickets Creados</h3>
+                <p class="mt-1 text-3xl font-semibold text-gray-900">{{ tickets_creados_count }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-5">
+                <h3 class="text-sm font-medium text-gray-500 truncate">Tickets Resueltos</h3>
+                <p class="mt-1 text-3xl font-semibold text-green-600">{{ tickets_resueltos_count }}</p>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Últimos Tickets Creados</h3>
+                <ul class="divide-y divide-gray-200">
+                    {% for ticket in tickets_creados_recientes %}
+                    <li class="py-3">
+                        <a href="{% url 'detalle_ticket' ticket.id %}" class="text-blue-600 hover:underline">#{{ ticket.id }} - {{ ticket.titulo }}</a>
+                        <p class="text-sm text-gray-500">{{ ticket.fecha_creacion|date:"d/m/Y" }}</p>
+                    </li>
+                    {% empty %}
+                    <li class="py-3 text-gray-500">Este usuario no ha creado tickets.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Últimos Tickets Resueltos</h3>
+                 <ul class="divide-y divide-gray-200">
+                    {% for ticket in tickets_resueltos_recientes %}
+                    <li class="py-3">
+                        <a href="{% url 'detalle_ticket' ticket.id %}" class="text-blue-600 hover:underline">#{{ ticket.id }} - {{ ticket.titulo }}</a>
+                        <p class="text-sm text-gray-500">Finalizado el {{ ticket.fecha_actualizacion|date:"d/m/Y" }}</p>
+                    </li>
+                    {% empty %}
+                    <li class="py-3 text-gray-500">Este usuario no ha resuelto tickets.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>

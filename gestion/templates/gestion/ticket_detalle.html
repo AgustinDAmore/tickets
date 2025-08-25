@@ -11,6 +11,15 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .form-field-input { width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #D1D5DB; background-color: white; }
+        /* --- ESTILOS AÑADIDOS --- */
+        .comment-body a {
+            color: #3b82f6; /* Color azul para los enlaces */
+            text-decoration: underline; /* Subrayado para que se vea como un link */
+        }
+        .comment-body a:hover {
+            color: #1d4ed8; /* Un azul más oscuro al pasar el ratón */
+        }
+        /* --- FIN DE ESTILOS AÑADIDOS --- */
     </style>
 </head>
 <body class="bg-gray-100">
@@ -37,11 +46,21 @@
                 <div>
                     <h2 class="text-3xl font-bold text-gray-900">{{ ticket.titulo }}</h2>
                     <p class="text-sm text-gray-500 mt-1">
-                        Abierto por <strong>{% if ticket.usuario_creador.perfil.numero_interno %} {{ ticket.usuario_creador.username|capfirst }} - {{ ticket.usuario_creador.perfil.area.nombre|capfirst }} - Interno: {{ ticket.usuario_creador.perfil.numero_interno|capfirst }} {% else %} {{ ticket.usuario_creador.username|capfirst }} - {{ ticket.usuario_creador.perfil.area.nombre|capfirst }} {% endif %}</strong> el {{ ticket.fecha_creacion|date:"d/m/Y \a \l\a\s H:i" }}
+                        Abierto por
+                        <strong>
+                            <a href="{% url 'public_perfil' ticket.usuario_creador.id %}" class="text-indigo-600 hover:underline">{{ ticket.usuario_creador.username|capfirst }}</a>
+                        </strong>
+                        {% if ticket.usuario_creador.perfil.area %}
+                            - {{ ticket.usuario_creador.perfil.area.nombre|capfirst }}
+                        {% endif %}
+                        {% if ticket.usuario_creador.perfil.numero_interno %}
+                            - Interno: {{ ticket.usuario_creador.perfil.numero_interno }}
+                        {% endif %}
+                        el {{ ticket.fecha_creacion|date:"d/m/Y \a \l\a\s H:i" }}
                     </p>
                 </div>
-                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full 
-                    {% if ticket.estado.nombre_estado == 'Finalizado' %} bg-green-100 text-green-800 
+                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
+                    {% if ticket.estado.nombre_estado == 'Finalizado' %} bg-green-100 text-green-800
                     {% elif ticket.estado.nombre_estado == 'Aceptado' %} bg-yellow-100 text-yellow-800
                     {% elif ticket.estado.nombre_estado == 'Pendiente' %} bg-red-100 text-red-800
                     {% else %} bg-gray-100 text-gray-800 {% endif %}">
@@ -92,7 +111,7 @@
 
         <div class="bg-white shadow-lg rounded-lg p-6">
             <h3 class="text-xl font-semibold text-gray-800 mb-4">Comentarios ({{ ticket.comentarios.count }})</h3>
-            
+           
             {% if ticket.estado.nombre_estado != 'Finalizado' %}
             <form method="post" enctype="multipart/form-data" class="mb-6">
                 {% csrf_token %}
@@ -116,8 +135,8 @@
             <div class="space-y-4">
                 {% for comentario in ticket.comentarios.all %}
                 <div class="bg-gray-50 p-4 rounded-lg">
-                    <p class="text-gray-800">{{ comentario.cuerpo_comentario|linebreaks }}</p>
-                    
+                    <p class="text-gray-800 comment-body">{{ comentario.cuerpo_comentario|urlize|linebreaks }}</p>
+                   
                     {% if comentario.adjuntos.all %}
                     <div class="mt-3">
                         <p class="text-sm font-medium text-gray-600">Archivos adjuntos:</p>
@@ -132,7 +151,7 @@
                         </ul>
                     </div>
                     {% endif %}
-                    
+                   
                     <p class="text-xs text-gray-500 mt-2 text-right">
                         <strong>{% if comentario.usuario_autor.perfil.numero_interno %} {{ comentario.usuario_autor.username|capfirst }} - {{ comentario.usuario_autor.perfil.area.nombre|capfirst }} - Interno: {{ comentario.usuario_autor.perfil.numero_interno }} {% else %} {{ comentario.usuario_autor.username|capfirst }} - {{ comentario.usuario_autor.perfil.area.nombre|capfirst }} {% endif %}</strong>, {{ comentario.fecha_creacion|date:"d/m/Y H:i" }}
                     </p>

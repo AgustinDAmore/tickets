@@ -14,7 +14,7 @@ from django.contrib.auth import authenticate, login, logout, get_user_model, upd
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count, Avg, F
 from django.http import HttpResponse, HttpRequest, JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -24,16 +24,14 @@ from webpush import send_user_notification
 from .forms import (
     CustomUserCreationForm, TicketCreationForm, CommentForm,
     StatusChangeForm, AdminPasswordChangeForm, AvisoForm,
-
-    PerfilUpdateForm, UserPasswordChangeForm, AreaForm,
+    UserUpdateForm, PerfilUpdateForm, UserPasswordChangeForm, AreaForm,
     AreaChangeForm, UserGroupsForm
 )
+
 from .models import Ticket, EstadoTicket, Aviso, Perfil, Area, ArchivoAdjunto
 
 audit_log = logging.getLogger('audit')
 User = get_user_model()
-
-# --- VISTAS DE LOGIN Y LOGOUT ---
 
 def show_login_page(request: HttpRequest) -> HttpResponse:
     return render(request, 'gestion/login.html')
@@ -101,7 +99,7 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
     if creator_filter and user_can_view_all_tickets and view_mode == 'todos':
         tickets = tickets.filter(usuario_creador__id=creator_filter)
 
-    tickets = tickets.order_by('-fecha_creacion')
+    tickets = tickets.order_by('-fecha_ultima_modificacion')
     
     user_can_see_informe = request.user.groups.filter(name='Informe').exists()
 
@@ -159,6 +157,7 @@ def crear_ticket_view(request: HttpRequest) -> HttpResponse:
             except EstadoTicket.DoesNotExist:
                 return HttpResponse("Error: El estado 'Pendiente' no está configurado.", status=500)
             
+            ticket.fecha_ultima_modificacion = timezone.now()
             ticket.save()
 
             for f in request.FILES.getlist('adjuntos'):
@@ -362,26 +361,28 @@ def perfil_view(request: HttpRequest) -> HttpResponse:
     perfil, created = Perfil.objects.get_or_create(user=request.user)
     if request.method == 'POST':
         if 'update_profile' in request.POST:
+            user_form = UserUpdateForm(request.POST, instance=request.user)
             profile_form = PerfilUpdateForm(request.POST, instance=perfil)
             password_form = UserPasswordChangeForm(request.user)
-            if profile_form.is_valid():
+            if user_form.is_valid() and profile_form.is_valid():
+                user_form.save()
                 profile_form.save()
                 messages.success(request, '¡Tu perfil ha sido actualizado exitosamente!')
                 return redirect('perfil')
         elif 'change_password' in request.POST:
             password_form = UserPasswordChangeForm(request.user, request.POST)
-            profile_form = PerfilUpdateForm(request.POST, instance=perfil)
+            user_form = UserUpdateForm(instance=request.user)
+            profile_form = PerfilUpdateForm(instance=perfil)
             if password_form.is_valid():
                 user = password_form.save()
                 update_session_auth_hash(request, user)
                 messages.success(request, '¡Tu contraseña ha sido cambiada exitosamente!')
                 return redirect('perfil')
-            else:
-                profile_form = PerfilUpdateForm(instance=perfil)
     else:
+        user_form = UserUpdateForm(instance=request.user)
         profile_form = PerfilUpdateForm(instance=perfil)
         password_form = UserPasswordChangeForm(request.user)
-    context = {'profile_form': profile_form, 'password_form': password_form}
+    context = {'user_form': user_form, 'profile_form': profile_form, 'password_form': password_form}
     return render(request, 'gestion/perfil.html', context)
 
 @login_required
@@ -529,8 +530,8 @@ def informes_view(request: HttpRequest) -> HttpResponse:
 
     fecha_limite = timezone.now() - timedelta(days=5)
     tickets_estancados = Ticket.objects.exclude(estado__nombre_estado='Finalizado') \
-        .filter(fecha_actualizacion__lte=fecha_limite) \
-        .order_by('fecha_actualizacion')
+        .filter(fecha_ultima_modificacion__lte=fecha_limite) \
+        .order_by('fecha_ultima_modificacion')
 
     titulos = Ticket.objects.values_list('titulo', flat=True)
     texto_completo = " ".join(titulos).lower()
@@ -558,6 +559,29 @@ def informes_view(request: HttpRequest) -> HttpResponse:
     }
     return render(request, 'gestion/informes.html', context)
 
+@login_required
+def public_perfil_view(request: HttpRequest, user_id: int) -> HttpResponse:
+    """
+    Muestra una página de perfil público para un usuario específico.
+    """
+    usuario_perfil = get_object_or_404(User, id=user_id)
+    perfil, created = Perfil.objects.get_or_create(user=usuario_perfil)
+
+    tickets_creados = Ticket.objects.filter(usuario_creador=usuario_perfil).order_by('-fecha_creacion')
+    tickets_resueltos = Ticket.objects.filter(
+        usuario_asignado=usuario_perfil,
+        estado__nombre_estado='Finalizado'
+    ).order_by('-fecha_actualizacion')
+
+    context = {
+        'usuario_perfil': usuario_perfil,
+        'perfil': perfil,
+        'tickets_creados_count': tickets_creados.count(),
+        'tickets_resueltos_count': tickets_resueltos.count(),
+        'tickets_creados_recientes': tickets_creados[:5],
+        'tickets_resueltos_recientes': tickets_resueltos[:5],
+    }
+    return render(request, 'gestion/public_perfil.html', context)
 
 def custom_404_view(request):
     return render(request, '404.html', status=404)

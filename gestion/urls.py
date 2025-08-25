@@ -24,6 +24,7 @@ from .views import (
     verificar_acceso_cp,
     gestionar_grupos_view,
     informes_view,
+    public_perfil_view,
 )
 
 urlpatterns = [
@@ -48,6 +49,7 @@ urlpatterns = [
     path('usuarios/gestionar-grupos/<int:user_id>/', gestionar_grupos_view, name='gestionar_grupos'),
     path('api/verificar_acceso_cp/', verificar_acceso_cp, name='verificar_acceso_cp_api'),
     path('informes/', informes_view, name='informes'),
+    path('usuario/<int:user_id>/', public_perfil_view, name='public_perfil'),
 ]
 
 if settings.DEBUG:

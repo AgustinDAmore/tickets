@@ -90,7 +90,7 @@
                                         <a href="{% url 'detalle_ticket' ticket.id %}" class="text-blue-600 hover:underline">#{{ ticket.id }}</a>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-500">{{ ticket.titulo }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-500">{{ ticket.fecha_actualizacion|date:"d/m/Y" }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">{{ ticket.fecha_ultima_modificacion|date:"d/m/Y" }}</td>
                                 </tr>
                                 {% empty %}
                                 <tr><td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">¡Felicidades! No hay tickets estancados.</td></tr>

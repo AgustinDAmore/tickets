@@ -1,4 +1,4 @@
-# /var/w ww/tickets/gestion/forms.py
+# /var/www/tickets/gestion/forms.py
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, SetPasswordForm, PasswordChangeForm
@@ -14,6 +14,22 @@ class AreaForm(forms.ModelForm):
         }
         labels = {
             'nombre': 'Nombre del Área',
+        }
+
+# --- FORMULARIO NUEVO AÑADIDO ---
+class UserUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email']
+        labels = {
+            'first_name': 'Nombre',
+            'last_name': 'Apellido',
+            'email': 'Correo Electrónico',
+        }
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-field-input'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-field-input'}),
+            'email': forms.EmailInput(attrs={'class': 'form-field-input'}),
         }
 
 class CustomUserCreationForm(UserCreationForm):
