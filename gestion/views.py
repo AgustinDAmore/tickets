@@ -65,7 +65,7 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 def dashboard_view(request: HttpRequest) -> HttpResponse:
     view_mode = request.GET.get('vista', 'personal')
     search_query = request.GET.get('q', '')
-    status_filter = request.GET.get('estado', '')
+    status_filter = request.GET.get('estado', 'no_finalizados')
     creator_filter = request.GET.get('creador', '')
 
     tickets = Ticket.objects.select_related('estado', 'usuario_creador', 'area_asignada')
@@ -94,7 +94,10 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
         )
     
     if status_filter:
-        tickets = tickets.filter(estado__id=status_filter)
+        if status_filter == 'no_finalizados':
+            tickets = tickets.exclude(estado__nombre_estado='Finalizado')
+        else:
+            tickets = tickets.filter(estado__id=status_filter)
 
     if creator_filter and user_can_view_all_tickets and view_mode == 'todos':
         tickets = tickets.filter(usuario_creador__id=creator_filter)

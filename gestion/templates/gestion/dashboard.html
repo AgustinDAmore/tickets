@@ -63,26 +63,27 @@
         </div>
 
         <div class="bg-white rounded-lg shadow p-4 mb-6">
-            <form method="get" class="grid grid-cols-1 {% if user_can_view_all_tickets and view_mode == 'todos' %}md:grid-cols-4{% else %}md:grid-cols-3{% endif %} gap-4">
+            <form id="filterForm" method="get" class="grid grid-cols-1 {% if user_can_view_all_tickets and view_mode == 'todos' %}md:grid-cols-4{% else %}md:grid-cols-3{% endif %} gap-4">
                 
                 {% if view_mode == 'todos' %}
                 <input type="hidden" name="vista" value="todos">
                 {% endif %}
 
                 <div class="md:col-span-1">
-                    <input type="text" name="q" value="{{ search_query }}" placeholder="Buscar por ID, título..." class="w-full rounded-md border-gray-300">
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Buscar por ID, título..." class="w-full rounded-md border-gray-300" oninput="this.form.submit()">
                 </div>
                 
                 <div class="md:col-span-1">
-                    <select name="estado" class="w-full rounded-md border-gray-300">
+                    <select name="estado" class="w-full rounded-md border-gray-300" onchange="this.form.submit()">
                         <option value="">Todos los estados</option>
+                        <option value="no_finalizados" {% if status_filter == 'no_finalizados' %}selected{% endif %}>Todos menos finalizados</option>
                         {% for status in all_statuses %}<option value="{{ status.id }}" {% if status.id|stringformat:"s" == status_filter %}selected{% endif %}>{{ status.nombre_estado }}</option>{% endfor %}
                     </select>
                 </div>
 
                 {% if user_can_view_all_tickets and view_mode == 'todos' %}
                 <div class="md:col-span-1">
-                    <select name="creador" class="w-full rounded-md border-gray-300">
+                    <select name="creador" class="w-full rounded-md border-gray-300" onchange="this.form.submit()">
                         <option value="">Todos los creadores</option>
                         {% for creator in all_users %}<option value="{{ creator.id }}" {% if creator.id|stringformat:"s" == creator_filter %}selected{% endif %}>{{ creator.username }}</option>{% endfor %}
                     </select>
@@ -90,7 +91,6 @@
                 {% endif %}
 
                 <div class="md:col-span-1 flex items-center gap-2">
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Buscar</button>
                     <a href="{% url 'dashboard' %}{% if view_mode == 'todos' %}?vista=todos{% endif %}" class="w-full text-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">Limpiar</a>
                 </div>
             </form>
