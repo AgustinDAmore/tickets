@@ -3,6 +3,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="30">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Sistema de Tickets</title>
     <link rel="icon" href="{% static 'gestion/favicon.ico' %}" type="image/x-icon">
@@ -12,6 +13,11 @@
         body { font-family: 'Inter', sans-serif; }
         .ticket-row { cursor: pointer; }
         .ticket-row:hover { background-color: #f9fafb; }
+        /* --- ESTILOS AÑADIDOS --- */
+        .ticket-unread {
+            background-color: #eff6ff; /* Un azul muy claro */
+            font-weight: 500;
+        }
         @keyframes pulse {
             0%, 100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7); }
             70% { box-shadow: 0 0 0 10px rgba(168, 85, 247, 0); }
@@ -126,8 +132,13 @@
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         {% for ticket in tickets %}
-                        <tr class="ticket-row" onclick="window.location.href='/tickets/{{ ticket.id }}/';">
-                            <td class="py-4 px-6 whitespace-nowrap text-sm font-medium text-gray-900">#{{ ticket.id }}</td>
+                        <tr class="ticket-row {% if ticket.id in unread_comment_tickets_ids %}ticket-unread{% endif %}" onclick="window.location.href='/tickets/{{ ticket.id }}/';">
+                            <td class="py-4 px-6 whitespace-nowrap text-sm font-medium text-gray-900 relative">
+                                {% if ticket.id in unread_comment_tickets_ids %}
+                                    <span class="h-2 w-2 rounded-full bg-blue-500 absolute left-2 top-1/2 -translate-y-1/2" title="Nuevos comentarios"></span>
+                                {% endif %}
+                                <span class="pl-3">#{{ ticket.id }}</span>
+                            </td>
                             <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-700">{{ ticket.titulo }}</td>
                             <td class="py-4 px-6 whitespace-nowrap text-sm">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 

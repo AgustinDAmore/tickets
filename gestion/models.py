@@ -1,4 +1,4 @@
-# /var/w ww/tickets/gestion/models.py
+# /var/www/tickets/gestion/models.py
 
 from django.db import models
 from django.conf import settings
@@ -45,6 +45,8 @@ class Ticket(models.Model):
     estado = models.ForeignKey(EstadoTicket, on_delete=models.RESTRICT)
     area_asignada = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_en_area')
     usuario_asignado = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_asignados')
+    # --- CAMPO AÑADIDO ---
+    comentarios_leidos_por = models.ManyToManyField(User, related_name='tickets_con_comentarios_leidos', blank=True)
 
     def __str__(self):
         return self.titulo
@@ -55,12 +57,18 @@ class Comentario(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='comentarios')
     usuario_autor = models.ForeignKey(User, on_delete=models.RESTRICT)
 
+# --- LÓGICA MODIFICADA ---
 @receiver(post_save, sender=Comentario)
-def actualizar_fecha_modificacion_ticket(sender, instance, created, **kwargs):
+def actualizar_y_notificar_comentario(sender, instance, created, **kwargs):
     if created:
         ticket = instance.ticket
+        # Actualiza la fecha de modificación del ticket
         ticket.fecha_ultima_modificacion = timezone.now()
         ticket.save()
+        
+        # Reinicia el seguimiento de lectura y añade al autor
+        ticket.comentarios_leidos_por.clear()
+        ticket.comentarios_leidos_por.add(instance.usuario_autor)
 
 class Aviso(models.Model):
     titulo = models.CharField(max_length=200)

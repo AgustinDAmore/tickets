@@ -42,7 +42,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
         data = json.loads(request.body)
         username = data.get('nombre_usuario')
         password = data.get('password')
-        username = username.lower()
+        username = username.lower().strip()
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
@@ -102,6 +102,10 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
     if creator_filter and user_can_view_all_tickets and view_mode == 'todos':
         tickets = tickets.filter(usuario_creador__id=creator_filter)
 
+    # --- LÓGICA AÑADIDA ---
+    # Obtiene los IDs de los tickets con comentarios sin leer por el usuario actual
+    unread_comment_tickets_ids = list(tickets.exclude(comentarios_leidos_por=request.user).values_list('id', flat=True))
+
     tickets = tickets.order_by('-fecha_ultima_modificacion')
     
     user_can_see_informe = request.user.groups.filter(name='Informe').exists()
@@ -118,6 +122,7 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
         'view_mode': view_mode,
         'user_can_view_all_tickets': user_can_view_all_tickets,
         'user_can_see_informe': user_can_see_informe,
+        'unread_comment_tickets_ids': unread_comment_tickets_ids, # <-- Pasa la lista al contexto
     }
     
     if user_can_view_all_tickets:
@@ -214,6 +219,10 @@ def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
         return redirect('dashboard')
 
     user = request.user
+    
+    # --- LÓGICA AÑADIDA ---
+    # Marca el ticket como leído por el usuario actual al verlo
+    ticket.comentarios_leidos_por.add(user)
     
     can_view_all = user.is_staff or user.groups.filter(name='Ver todos los tickets').exists()
     
