@@ -3,7 +3,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, SetPasswordForm, PasswordChangeForm
 from django.contrib.auth.models import User, Group
-from .models import Ticket, Comentario, Aviso, Perfil, EstadoTicket, Area
+from .models import Ticket, Comentario, Aviso, Perfil, EstadoTicket, Area, Tarea 
+
 
 class AreaForm(forms.ModelForm):
     class Meta:
@@ -91,6 +92,25 @@ class TicketCreationForm(forms.ModelForm):
         labels = {
             'titulo': 'Título del Ticket',
             'descripcion': 'Descripción del Problema',
+        }
+class TareaCreationForm(forms.ModelForm):
+    areas_asignadas = forms.ModelMultipleChoiceField(
+        queryset=Area.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label="Seleccionar Áreas"
+    )
+
+    class Meta:
+        model = Tarea
+        fields = ['titulo', 'descripcion', 'areas_asignadas']
+        widgets = {
+            'titulo': forms.TextInput(attrs={'class': 'form-field-input'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-field-input', 'rows': 5}),
+        }
+        labels = {
+            'titulo': 'Título de la Tarea',
+            'descripcion': 'Descripción General',
         }
 
 class CommentForm(forms.ModelForm):

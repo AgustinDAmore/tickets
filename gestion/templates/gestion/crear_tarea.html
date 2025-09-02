@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Tarea - Sistema de Tickets</title>
+    <link rel="icon" href="{% static 'gestion/favicon.ico' %}" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style> body { font-family: 'Inter', sans-serif; } .form-field-input { width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #D1D5DB; } </style>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16"><a href="{% url 'dashboard' %}" class="flex items-center"><h1 class="text-xl font-bold">Sistema de Tickets</h1></a><a href="{% url 'lista_tareas' %}" class="my-auto text-gray-600 hover:text-gray-800">Volver a Tareas</a></div>
+        </div>
+    </nav>
+    <main class="max-w-2xl mx-auto py-10">
+        <div class="bg-white shadow-lg rounded-lg p-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6">Generar Nueva Tarea</h2>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-4">{{ form.titulo.label_tag }} {{ form.titulo }}</div>
+                <div class="mb-4">{{ form.descripcion.label_tag }} {{ form.descripcion }}</div>
+                <div class="mb-6">
+                    <label class="block font-medium mb-2">{{ form.areas_asignadas.label }}</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        {% for checkbox in form.areas_asignadas %}<div><label class="flex items-center space-x-2">{{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span></label></div>{% endfor %}
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg">Guardar Tarea</button>
+            </form>
+        </div>
+    </main>
+</body>
+</html>

@@ -14,6 +14,18 @@ class Area(models.Model):
     def __str__(self):
         return self.nombre
 
+# --- NUEVO MODELO DE TAREA ---
+class Tarea(models.Model):
+    titulo = models.CharField(max_length=150)
+    descripcion = models.TextField()
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    usuario_creador = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tareas_creadas')
+    areas_asignadas = models.ManyToManyField(Area, related_name='tareas_asignadas')
+    finalizada = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.titulo
+
 class Perfil(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     numero_interno = models.CharField(max_length=20, blank=True, null=True)
@@ -36,6 +48,9 @@ class EstadoTicket(models.Model):
         return self.nombre_estado
 
 class Ticket(models.Model):
+    # --- CAMPO AÑADIDO PARA RELACIONAR CON TAREA ---
+    tarea = models.ForeignKey(Tarea, on_delete=models.CASCADE, null=True, blank=True, related_name='tickets')
+
     titulo = models.CharField(max_length=150)
     descripcion = models.TextField()
     fecha_creacion = models.DateTimeField(auto_now_add=True)
@@ -45,7 +60,6 @@ class Ticket(models.Model):
     estado = models.ForeignKey(EstadoTicket, on_delete=models.RESTRICT)
     area_asignada = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_en_area')
     usuario_asignado = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_asignados')
-    # --- CAMPO AÑADIDO ---
     comentarios_leidos_por = models.ManyToManyField(User, related_name='tickets_con_comentarios_leidos', blank=True)
 
     def __str__(self):
@@ -57,16 +71,13 @@ class Comentario(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='comentarios')
     usuario_autor = models.ForeignKey(User, on_delete=models.RESTRICT)
 
-# --- LÓGICA MODIFICADA ---
 @receiver(post_save, sender=Comentario)
 def actualizar_y_notificar_comentario(sender, instance, created, **kwargs):
     if created:
         ticket = instance.ticket
-        # Actualiza la fecha de modificación del ticket
         ticket.fecha_ultima_modificacion = timezone.now()
         ticket.save()
         
-        # Reinicia el seguimiento de lectura y añade al autor
         ticket.comentarios_leidos_por.clear()
         ticket.comentarios_leidos_por.add(instance.usuario_autor)
 

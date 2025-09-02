@@ -59,6 +59,9 @@
                         </a>
                     {% endif %}
                 {% endif %}
+                <a href="{% url 'lista_tareas' %}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">
+                    Ver Tareas
+                </a>
                 <a href="{% url 'lista_avisos' %}" class="relative bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg {% if unread_avisos_count > 0 %}pulse{% endif %}">
                     <span>Avisos</span>
                     {% if unread_avisos_count > 0 %}

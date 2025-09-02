@@ -25,6 +25,9 @@ from .views import (
     gestionar_grupos_view,
     informes_view,
     public_perfil_view,
+    lista_tareas_view,
+    crear_tarea_view,
+    tarea_detalle_view,
 )
 
 urlpatterns = [
@@ -50,6 +53,9 @@ urlpatterns = [
     path('api/verificar_acceso_cp/', verificar_acceso_cp, name='verificar_acceso_cp_api'),
     path('informes/', informes_view, name='informes'),
     path('usuario/<int:user_id>/', public_perfil_view, name='public_perfil'),
+    path('tareas/', lista_tareas_view, name='lista_tareas'),
+    path('tareas/crear/', crear_tarea_view, name='crear_tarea'),
+    path('tareas/<int:tarea_id>/', tarea_detalle_view, name='tarea_detalle'),
 ]
 
 if settings.DEBUG:

@@ -25,10 +25,10 @@ from .forms import (
     CustomUserCreationForm, TicketCreationForm, CommentForm,
     StatusChangeForm, AdminPasswordChangeForm, AvisoForm,
     UserUpdateForm, PerfilUpdateForm, UserPasswordChangeForm, AreaForm,
-    AreaChangeForm, UserGroupsForm
+    AreaChangeForm, UserGroupsForm, TareaCreationForm 
 )
 
-from .models import Ticket, EstadoTicket, Aviso, Perfil, Area, ArchivoAdjunto
+from .models import Ticket, EstadoTicket, Aviso, Perfil, Area, ArchivoAdjunto, Tarea 
 
 audit_log = logging.getLogger('audit')
 User = get_user_model()
@@ -68,7 +68,7 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
     status_filter = request.GET.get('estado', 'no_finalizados')
     creator_filter = request.GET.get('creador', '')
 
-    tickets = Ticket.objects.select_related('estado', 'usuario_creador', 'area_asignada')
+    tickets = Ticket.objects.filter(tarea__isnull=True).select_related('estado', 'usuario_creador', 'area_asignada')
 
     user_can_view_all_tickets = request.user.groups.filter(name='Ver todos los tickets').exists()
 
@@ -130,6 +130,108 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
     
     return render(request, 'gestion/dashboard.html', context)
 
+@login_required
+def lista_tareas_view(request: HttpRequest) -> HttpResponse:
+    """ Muestra el dashboard de tareas con filtros de permisos correctos. """
+    
+    tareas = Tarea.objects.select_related('usuario_creador').prefetch_related('areas_asignadas', 'tickets').order_by('-fecha_creacion')
+
+    # Los superusuarios ven todo
+    if not request.user.is_superuser:
+        user_area = request.user.perfil.area
+        
+        # Filtro para tareas creadas por el usuario o asignadas directamente a su área principal
+        filtro_principal = Q(usuario_creador=request.user)
+        if user_area:
+            filtro_principal |= Q(areas_asignadas=user_area)
+        
+        # Filtro para tareas que contienen tickets asignados al área del usuario
+        # Esto permite que un área como "Gerencia" vea la tarea en la lista
+        filtro_por_ticket = Q()
+        if user_area:
+            filtro_por_ticket = Q(tickets__area_asignada=user_area)
+
+        # Se aplica el filtro combinado
+        tareas = tareas.filter(filtro_principal | filtro_por_ticket).distinct()
+            
+    context = {
+        'tareas': tareas
+    }
+    return render(request, 'gestion/lista_tareas.html', context)
+
+@login_required
+def crear_tarea_view(request: HttpRequest) -> HttpResponse:
+    """ Permite crear una nueva tarea. """
+    if request.method == 'POST':
+        form = TareaCreationForm(request.POST)
+        if form.is_valid():
+            tarea = form.save(commit=False)
+            # --- CAMBIO AQUÍ: de 'autor' a 'usuario_creador' ---
+            tarea.usuario_creador = request.user
+            tarea.save()
+            form.save_m2m()
+            audit_log.info(f"TAREA CREADA: Usuario '{request.user.username}' creó la tarea '{tarea.titulo}'.")
+            messages.success(request, 'Tarea creada exitosamente.')
+            return redirect('lista_tareas')
+    else:
+        form = TareaCreationForm()
+    
+    return render(request, 'gestion/crear_tarea.html', {'form': form})
+
+
+@login_required
+def tarea_detalle_view(request: HttpRequest, tarea_id: int) -> HttpResponse:
+    """ Muestra el detalle de una tarea y filtra sus tickets según los permisos del usuario. """
+    tarea = get_object_or_404(Tarea, id=tarea_id)
+    user = request.user
+    user_area = user.perfil.area
+
+    # --- 1. Verificación de Permisos para acceder a la TAREA ---
+    can_access = user.is_superuser or user == tarea.usuario_creador
+
+    is_in_task_area = False
+    if user_area and user_area in tarea.areas_asignadas.all():
+        is_in_task_area = True
+        can_access = True
+
+    if not can_access and user_area:
+        if tarea.tickets.filter(area_asignada=user_area).exists():
+            can_access = True
+
+    if not can_access:
+        messages.error(request, "No tienes permiso para ver esta tarea.")
+        return redirect('lista_tareas')
+
+    # --- 2. Lógica para crear un nuevo ticket (sin cambios) ---
+    if request.method == 'POST':
+        form = TicketCreationForm(request.POST, request.FILES)
+        if form.is_valid():
+            ticket = form.save(commit=False)
+            ticket.tarea = tarea
+            ticket.usuario_creador = request.user
+            ticket.estado = EstadoTicket.objects.get(nombre_estado='Pendiente')
+            ticket.save()
+
+            for f in request.FILES.getlist('adjuntos'):
+                ArchivoAdjunto.objects.create(ticket=ticket, archivo=f, comentario=None)
+
+            audit_log.info(f"TICKET CREADO (TAREA): Usuario '{request.user.username}' creó el ticket #{ticket.id} en la tarea '{tarea.titulo}'.")
+            return redirect('tarea_detalle', tarea_id=tarea.id)
+    else:
+        form = TicketCreationForm()
+
+    # --- 3. Filtrado de TICKETS para mostrar en la plantilla ---
+    tickets_de_la_tarea = tarea.tickets.all().order_by('-fecha_ultima_modificacion')
+
+    if not user.is_superuser and user != tarea.usuario_creador and not is_in_task_area:
+        tickets_de_la_tarea = tickets_de_la_tarea.filter(area_asignada=user_area)
+
+    context = {
+        'tarea': tarea,
+        'tickets': tickets_de_la_tarea,
+        'ticket_form': form
+    }
+    return render(request, 'gestion/tarea_detalle.html', context)
 
 @login_required
 def gestionar_areas_view(request: HttpRequest) -> HttpResponse:
