@@ -28,6 +28,8 @@ from .views import (
     lista_tareas_view,
     crear_tarea_view,
     tarea_detalle_view,
+    lista_conocimientos_view,
+    detalle_conocimiento_view,
 )
 
 urlpatterns = [
@@ -56,6 +58,8 @@ urlpatterns = [
     path('tareas/', lista_tareas_view, name='lista_tareas'),
     path('tareas/crear/', crear_tarea_view, name='crear_tarea'),
     path('tareas/<int:tarea_id>/', tarea_detalle_view, name='tarea_detalle'),
+    path('conocimientos/', lista_conocimientos_view, name='lista_conocimientos'),
+    path('conocimientos/<int:articulo_id>/', detalle_conocimiento_view, name='detalle_conocimiento'),
 ]
 
 if settings.DEBUG:

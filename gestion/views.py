@@ -28,7 +28,8 @@ from .forms import (
     AreaChangeForm, UserGroupsForm, TareaCreationForm 
 )
 
-from .models import Ticket, EstadoTicket, Aviso, Perfil, Area, ArchivoAdjunto, Tarea 
+from .models import Ticket, EstadoTicket, Aviso, Perfil, Area, ArchivoAdjunto, Tarea, CategoriaConocimiento, ArticuloConocimiento
+
 
 audit_log = logging.getLogger('audit')
 User = get_user_model()
@@ -702,6 +703,38 @@ def public_perfil_view(request: HttpRequest, user_id: int) -> HttpResponse:
         'tickets_resueltos_recientes': tickets_resueltos[:5],
     }
     return render(request, 'gestion/public_perfil.html', context)
+
+@login_required
+def lista_conocimientos_view(request: HttpRequest) -> HttpResponse:
+    search_query = request.GET.get('q', '')
+    
+    categorias = CategoriaConocimiento.objects.prefetch_related(
+        'articulos'
+    ).annotate(
+        num_articulos=Count('articulos')
+    ).filter(num_articulos__gt=0)
+    
+    if search_query:
+        articulos_filtrados = ArticuloConocimiento.objects.filter(
+            Q(titulo__icontains=search_query) | Q(contenido__icontains=search_query)
+        )
+    else:
+        articulos_filtrados = None
+
+    context = {
+        'categorias': categorias,
+        'search_query': search_query,
+        'articulos_filtrados': articulos_filtrados,
+    }
+    return render(request, 'gestion/lista_conocimientos.html', context)
+
+@login_required
+def detalle_conocimiento_view(request: HttpRequest, articulo_id: int) -> HttpResponse:
+    articulo = get_object_or_404(ArticuloConocimiento, id=articulo_id)
+    context = {
+        'articulo': articulo
+    }
+    return render(request, 'gestion/detalle_conocimiento.html', context)
 
 def custom_404_view(request):
     return render(request, '404.html', status=404)

@@ -14,6 +14,32 @@ class Area(models.Model):
     def __str__(self):
         return self.nombre
 
+class CategoriaConocimiento(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    
+    class Meta:
+        verbose_name = "Categoría de Conocimiento"
+        verbose_name_plural = "Categorías de Conocimiento"
+
+    def __str__(self):
+        return self.nombre
+
+class ArticuloConocimiento(models.Model):
+    titulo = models.CharField(max_length=200, help_text="El título del artículo o la pregunta frecuente.")
+    contenido = models.TextField(help_text="La respuesta o solución detallada.")
+    categoria = models.ForeignKey(CategoriaConocimiento, on_delete=models.SET_NULL, null=True, related_name='articulos')
+    autor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    ultima_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-ultima_actualizacion']
+        verbose_name = "Artículo de Conocimiento"
+        verbose_name_plural = "Artículos de Conocimiento"
+
+    def __str__(self):
+        return self.titulo
+    
 # --- NUEVO MODELO DE TAREA ---
 class Tarea(models.Model):
     titulo = models.CharField(max_length=150)
