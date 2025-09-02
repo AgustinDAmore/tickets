@@ -321,9 +321,7 @@ def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
         return redirect('dashboard')
 
     user = request.user
-    
-    # --- LÓGICA AÑADIDA ---
-    # Marca el ticket como leído por el usuario actual al verlo
+
     ticket.comentarios_leidos_por.add(user)
     
     can_view_all = user.is_staff or user.groups.filter(name='Ver todos los tickets').exists()
@@ -346,12 +344,13 @@ def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
 
     comment_form = CommentForm()
     status_form = StatusChangeForm(instance=ticket)
+    
+    initial_attachments = ticket.adjuntos.filter(comentario__isnull=True)
 
     if request.method == 'POST':
         if 'add_comment' in request.POST:
             comment_form = CommentForm(request.POST, request.FILES)
             if comment_form.is_valid():
-                # Auto-asignación si el usuario es del área y el ticket no tiene a nadie asignado
                 if not ticket.usuario_asignado and is_in_area:
                     ticket.usuario_asignado = user
                     ticket.save()
@@ -377,7 +376,13 @@ def ticket_detalle_view(request: HttpRequest, ticket_id: int) -> HttpResponse:
                 audit_log.info(f"CAMBIO DE ESTADO: Usuario '{user.username}' cambió el estado del ticket #{ticket.id} de '{old_status}' a '{new_status}'.")
                 return redirect('detalle_ticket', ticket_id=ticket.id)
     
-    context = {'ticket': ticket, 'comment_form': comment_form, 'status_form': status_form, 'user': user}
+    context = {
+        'ticket': ticket,
+        'comment_form': comment_form,
+        'status_form': status_form,
+        'user': user,
+        'initial_attachments': initial_attachments
+    }
     return render(request, 'gestion/ticket_detalle.html', context)
     
 
