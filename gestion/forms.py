@@ -16,8 +16,13 @@ class AreaForm(forms.ModelForm):
         labels = {
             'nombre': 'Nombre del Área',
         }
+    
+    def clean_nombre(self):
+        nombre = self.cleaned_data.get('nombre')
+        if Area.objects.filter(nombre__iexact=nombre).exists():
+            raise forms.ValidationError("Ya existe un área con este nombre.")
+        return nombre
 
-# --- FORMULARIO NUEVO AÑADIDO ---
 class UserUpdateForm(forms.ModelForm):
     class Meta:
         model = User
@@ -64,7 +69,7 @@ class CustomUserCreationForm(UserCreationForm):
 
 class TicketCreationForm(forms.ModelForm):
     area_asignada = forms.ModelChoiceField(
-        queryset=Area.objects.all(),
+        queryset=Area.objects.all().order_by('nombre'),
         label="Asignar al Área",
         empty_label="Seleccione un área",
         required=True,

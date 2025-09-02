@@ -248,12 +248,13 @@ def gestionar_areas_view(request: HttpRequest) -> HttpResponse:
     else:
         form = AreaForm()
         
+    # ===== INICIO DEL CAMBIO =====
     context = {
         'form': form,
-        'areas': Area.objects.all().order_by('nombre')
+        'areas': Area.objects.annotate(num_users=Count('perfil')).order_by('nombre')
     }
+    # ===== FIN DEL CAMBIO =====
     return render(request, 'gestion/gestionar_areas.html', context)
-
 
 @login_required
 def crear_ticket_view(request: HttpRequest) -> HttpResponse:

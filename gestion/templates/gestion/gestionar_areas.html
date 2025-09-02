@@ -30,20 +30,50 @@
                 <div class="mb-4">
                     <label for="{{ form.nombre.id_for_label }}" class="block mb-2 font-medium">Nombre del Área</label>
                     {{ form.nombre }}
+                    {% if form.nombre.errors %}
+                        <div class="text-red-500 text-sm mt-2">
+                            {% for error in form.nombre.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg">Guardar Área</button>
             </form>
         </div>
         <div class="bg-white shadow-lg rounded-lg p-8">
             <h2 class="text-2xl font-semibold text-gray-800 mb-6">Áreas Existentes</h2>
-            <ul class="divide-y divide-gray-200">
-                {% for area in areas %}
-                <li class="py-3">{{ area.nombre }}</li>
-                {% empty %}
-                <li class="py-3 text-gray-500">No hay áreas creadas.</li>
-                {% endfor %}
-            </ul>
-        </div>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Nombre del Área
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Usuarios
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for area in areas %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ area.nombre }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ area.num_users }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">
+                            No hay áreas creadas.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
     </main>
 </body>
 </html>
