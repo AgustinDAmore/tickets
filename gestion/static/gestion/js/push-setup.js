@@ -1,4 +1,4 @@
-// /var/www/tickets/gestion/static/js/push-setup.js
+// tickets/gestion/static/gestion/js/push-setup.js
 
 function getCookie(name) {
     let cookieValue = null;
@@ -15,18 +15,11 @@ function getCookie(name) {
     return cookieValue;
 }
 
-const vapidPublicKey = "{{ VAPID_PUBLIC_KEY }}";
-const webpushGroup = "{{ webpush.group }}";
-
 function urlB64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-        .replace(/\-/g, '+')
-        .replace(/_/g, '/');
-
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);
-
     for (let i = 0; i < rawData.length; ++i) {
         outputArray[i] = rawData.charCodeAt(i);
     }
@@ -34,6 +27,9 @@ function urlB64ToUint8Array(base64String) {
 }
 
 async function subscribeUser() {
+    // La clave pública se pasará desde el template
+    const vapidPublicKey = document.getElementById('vpk').textContent.trim();
+
     try {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.subscribe({
@@ -48,10 +44,7 @@ async function subscribeUser() {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrftoken,
             },
-            body: JSON.stringify({
-                ...subscription.toJSON(),
-                group: webpushGroup
-            }),
+            body: JSON.stringify(subscription.toJSON()),
         });
         console.log('User is subscribed.');
     } catch (err) {
@@ -59,11 +52,8 @@ async function subscribeUser() {
     }
 }
 
-
 function initializeUI() {
-    // Aquí puedes añadir un botón para que el usuario se suscriba
-    // Por ahora, lo haremos automáticamente si el permiso es concedido.
-    if ('Notification' in window && navigator.serviceWorker) {
+    if ('Notification' in window && 'serviceWorker' in navigator) {
         Notification.requestPermission().then(permission => {
             if (permission === 'granted') {
                 console.log('Notification permission granted.');
@@ -72,7 +62,6 @@ function initializeUI() {
         });
     }
 }
-
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

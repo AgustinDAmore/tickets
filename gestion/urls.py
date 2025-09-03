@@ -1,7 +1,7 @@
 # /var/www/tickets/gestion/urls.py
 from django.conf import settings
 from django.conf.urls.static import static
-from django.urls import path
+from django.urls import path, re_path, include
 
 from .views import (
     show_login_page, 
@@ -58,6 +58,7 @@ urlpatterns = [
     path('tareas/<int:tarea_id>/', tarea_detalle_view, name='tarea_detalle'),
     path('conocimientos/', lista_conocimientos_view, name='lista_conocimientos'),
     path('conocimientos/<int:articulo_id>/', detalle_conocimiento_view, name='detalle_conocimiento'),
+    re_path(r'^webpush/', include('webpush.urls'))
 ]
 
 if settings.DEBUG:
