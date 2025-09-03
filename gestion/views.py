@@ -19,13 +19,11 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from webpush import send_user_notification
-
 from .forms import (
     CustomUserCreationForm, TicketCreationForm, CommentForm,
     StatusChangeForm, AdminPasswordChangeForm, AvisoForm,
     UserUpdateForm, PerfilUpdateForm, UserPasswordChangeForm, AreaForm,
-    AreaChangeForm, UserGroupsForm, TareaCreationForm 
+    AreaChangeForm, UserGroupsForm, TareaCreationForm
 )
 
 from .models import Ticket, EstadoTicket, Aviso, Perfil, Area, ArchivoAdjunto, Tarea, CategoriaConocimiento, ArticuloConocimiento
@@ -103,8 +101,6 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
     if creator_filter and user_can_view_all_tickets and view_mode == 'todos':
         tickets = tickets.filter(usuario_creador__id=creator_filter)
 
-    # --- LÓGICA AÑADIDA ---
-    # Obtiene los IDs de los tickets con comentarios sin leer por el usuario actual
     unread_comment_tickets_ids = list(tickets.exclude(comentarios_leidos_por=request.user).values_list('id', flat=True))
 
     tickets = tickets.order_by('-fecha_ultima_modificacion')
@@ -133,26 +129,20 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def lista_tareas_view(request: HttpRequest) -> HttpResponse:
-    """ Muestra el dashboard de tareas con filtros de permisos correctos. """
     
     tareas = Tarea.objects.select_related('usuario_creador').prefetch_related('areas_asignadas', 'tickets').order_by('-fecha_creacion')
 
-    # Los superusuarios ven todo
     if not request.user.is_superuser:
         user_area = request.user.perfil.area
         
-        # Filtro para tareas creadas por el usuario o asignadas directamente a su área principal
         filtro_principal = Q(usuario_creador=request.user)
         if user_area:
             filtro_principal |= Q(areas_asignadas=user_area)
         
-        # Filtro para tareas que contienen tickets asignados al área del usuario
-        # Esto permite que un área como "Gerencia" vea la tarea en la lista
         filtro_por_ticket = Q()
         if user_area:
             filtro_por_ticket = Q(tickets__area_asignada=user_area)
 
-        # Se aplica el filtro combinado
         tareas = tareas.filter(filtro_principal | filtro_por_ticket).distinct()
             
     context = {
@@ -162,12 +152,10 @@ def lista_tareas_view(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def crear_tarea_view(request: HttpRequest) -> HttpResponse:
-    """ Permite crear una nueva tarea. """
     if request.method == 'POST':
         form = TareaCreationForm(request.POST)
         if form.is_valid():
             tarea = form.save(commit=False)
-            # --- CAMBIO AQUÍ: de 'autor' a 'usuario_creador' ---
             tarea.usuario_creador = request.user
             tarea.save()
             form.save_m2m()
@@ -182,12 +170,10 @@ def crear_tarea_view(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def tarea_detalle_view(request: HttpRequest, tarea_id: int) -> HttpResponse:
-    """ Muestra el detalle de una tarea y filtra sus tickets según los permisos del usuario. """
     tarea = get_object_or_404(Tarea, id=tarea_id)
     user = request.user
     user_area = user.perfil.area
 
-    # --- 1. Verificación de Permisos para acceder a la TAREA ---
     can_access = user.is_superuser or user == tarea.usuario_creador
 
     is_in_task_area = False
@@ -203,7 +189,6 @@ def tarea_detalle_view(request: HttpRequest, tarea_id: int) -> HttpResponse:
         messages.error(request, "No tienes permiso para ver esta tarea.")
         return redirect('lista_tareas')
 
-    # --- 2. Lógica para crear un nuevo ticket (sin cambios) ---
     if request.method == 'POST':
         form = TicketCreationForm(request.POST, request.FILES)
         if form.is_valid():
@@ -221,7 +206,6 @@ def tarea_detalle_view(request: HttpRequest, tarea_id: int) -> HttpResponse:
     else:
         form = TicketCreationForm()
 
-    # --- 3. Filtrado de TICKETS para mostrar en la plantilla ---
     tickets_de_la_tarea = tarea.tickets.all().order_by('-fecha_ultima_modificacion')
 
     if not user.is_superuser and user != tarea.usuario_creador and not is_in_task_area:
@@ -249,12 +233,10 @@ def gestionar_areas_view(request: HttpRequest) -> HttpResponse:
     else:
         form = AreaForm()
         
-    # ===== INICIO DEL CAMBIO =====
     context = {
         'form': form,
         'areas': Area.objects.annotate(num_users=Count('perfil')).order_by('nombre')
     }
-    # ===== FIN DEL CAMBIO =====
     return render(request, 'gestion/gestionar_areas.html', context)
 
 @login_required
@@ -381,6 +363,11 @@ def lista_usuarios_view(request: HttpRequest) -> HttpResponse:
 
     search_query = request.GET.get('q', '')
     
+    log_message = f"ADMINISTRACIÓN: Usuario '{request.user.username}' consultó la lista de usuarios."
+    if search_query:
+        log_message += f" Buscó: '{search_query}'."
+    audit_log.info(log_message)
+
     usuarios = User.objects.select_related('perfil', 'perfil__area').prefetch_related('groups').all().order_by('username')
 
     if search_query:
@@ -456,6 +443,7 @@ def perfil_view(request: HttpRequest) -> HttpResponse:
             if user_form.is_valid() and profile_form.is_valid():
                 user_form.save()
                 profile_form.save()
+                audit_log.info(f"PERFIL ACTUALIZADO: Usuario '{request.user.username}' actualizó su información de perfil.")
                 messages.success(request, '¡Tu perfil ha sido actualizado exitosamente!')
                 return redirect('perfil')
         elif 'change_password' in request.POST:
@@ -484,7 +472,7 @@ def crear_aviso_view(request: HttpRequest) -> HttpResponse:
             aviso = form.save(commit=False)
             aviso.autor = request.user
             aviso.save()
-            audit_log.info(f"AVISO CREADO: Admin '{request.user.username}' creó el aviso '{aviso.titulo}'.")
+            audit_log.info(f"AVISO CREADO: '{request.user.username}' creó el aviso '{aviso.titulo}'.")
             return redirect('lista_avisos')
     else:
         form = AvisoForm()
@@ -547,6 +535,8 @@ def cambiar_area_view(request: HttpRequest, user_id: int) -> HttpResponse:
         form = AreaChangeForm(request.POST, instance=user_to_change.perfil)
         if form.is_valid():
             form.save()
+            new_area_name = user_to_change.perfil.area.nombre if user_to_change.perfil.area else "Ninguna"
+            audit_log.info(f"CAMBIO DE ÁREA: Admin '{request.user.username}' cambió el área de '{user_to_change.username}' a '{new_area_name}'.")
             messages.success(request, f'Área para {user_to_change.username} cambiada exitosamente.')
             return redirect('lista_usuarios')
     else:
@@ -568,6 +558,8 @@ def gestionar_grupos_view(request: HttpRequest, user_id: int) -> HttpResponse:
         form = UserGroupsForm(request.POST, instance=user_to_manage)
         if form.is_valid():
             form.save()
+            group_names = ", ".join([g.name for g in user_to_manage.groups.all()])
+            audit_log.info(f"GRUPOS ACTUALIZADOS: Admin '{request.user.username}' actualizó los grupos para '{user_to_manage.username}'. Nuevos grupos: [{group_names}]")
             messages.success(request, f'Grupos para {user_to_manage.username} actualizados exitosamente!')
             return redirect('lista_usuarios')
     else:
@@ -578,9 +570,6 @@ def gestionar_grupos_view(request: HttpRequest, user_id: int) -> HttpResponse:
 
 @login_required
 def informes_view(request: HttpRequest) -> HttpResponse:
-    """
-    Vista mejorada para generar un informe completo del sistema de tickets.
-    """
     if not request.user.groups.filter(name='Informe').exists():
         return redirect('dashboard')
 
@@ -650,9 +639,6 @@ def informes_view(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def public_perfil_view(request: HttpRequest, user_id: int) -> HttpResponse:
-    """
-    Muestra una página de perfil público para un usuario específico.
-    """
     usuario_perfil = get_object_or_404(User, id=user_id)
     perfil, created = Perfil.objects.get_or_create(user=usuario_perfil)
 
