@@ -63,7 +63,9 @@
                         <tbody id="userTableBody" class="divide-y divide-gray-200">
                             {% for u in usuarios %}
                             <tr>
-                                <td class="py-4 px-6 whitespace-nowrap text-sm font-medium text-gray-900">{{ u.username }}</td>
+                                <td onclick="window.location.href='{% url 'public_perfil' u.id %}'" class="py-4 px-6 whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer hover:bg-gray-100">
+                                    {{ u.username }}
+                                </td>                                
                                 <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-500">
                                     {% if u.groups.all %}
                                         <div class="relative inline-block text-left" data-dropdown-container>

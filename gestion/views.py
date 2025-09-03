@@ -277,38 +277,6 @@ def crear_ticket_view(request: HttpRequest) -> HttpResponse:
 
             audit_log.info(f"TICKET CREADO: Usuario '{request.user.username}' creó el ticket #{ticket.id} '{ticket.titulo}'.")
 
-            print(">>> INICIANDO PROCESO DE NOTIFICACIÓN <<<")
-            area_asignada = ticket.area_asignada
-            if area_asignada:
-                print(f"Ticket asignado al área: {area_asignada.nombre}")
-                
-                usuarios_a_notificar = User.objects.filter(perfil__area=area_asignada, is_active=True)
-                print(f"Usuarios encontrados en esta área: {usuarios_a_notificar.count()}")
-
-                if not usuarios_a_notificar.exists():
-                    print("No se encontraron usuarios para notificar en esta área.")
-
-                payload = {
-                    "head": "Nuevo Ticket Asignado a tu Área",
-                    "body": f"Asunto: '{ticket.titulo}'",
-                    "url": f"/tickets/{ticket.id}/"
-                }
-
-                for usuario in usuarios_a_notificar:
-                    print(f"Intentando notificar a: {usuario.username}")
-                    if usuario == request.user:
-                        print(f"...saltando notificación para el creador del ticket ({usuario.username}).")
-                        continue
-                    try:
-                        send_user_notification(user=usuario, payload=payload, ttl=1000)
-                        print(f"¡Notificación enviada exitosamente a {usuario.username}!")
-                    except Exception as e:
-                        print(f"!!! ERROR enviando notificación a {usuario.username}: {e}")
-            else:
-                print("El ticket no tiene un área asignada, no se enviarán notificaciones.")
-            
-            print(">>> FIN DEL PROCESO DE NOTIFICACIÓN <<<")
-
             return redirect('dashboard')
     else:
         form = TicketCreationForm()
