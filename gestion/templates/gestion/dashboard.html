@@ -1,4 +1,5 @@
 {% load static %}
+{% load webpush_notifications %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,17 +7,16 @@
     <meta http-equiv="refresh" content="30">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Sistema de Tickets</title>
+    {% webpush_header %}
     <link rel="icon" href="{% static 'gestion/favicon.ico' %}" type="image/x-icon">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    {% load webpush_notifications %}
     <style>
         body { font-family: 'Inter', sans-serif; }
         .ticket-row { cursor: pointer; }
         .ticket-row:hover { background-color: #f9fafb; }
-        /* --- ESTILOS AÑADIDOS --- */
         .ticket-unread {
-            background-color: #eff6ff; /* Un azul muy claro */
+            background-color: #eff6ff;
             font-weight: 500;
         }
         @keyframes pulse {
@@ -27,7 +27,17 @@
     </style>
 </head>
 <body class="bg-gray-100">
-    {% webpush_header %}
+
+    </main>
+    
+    <span id="vapid-public-key" style="display: none;">{{ VAPID_PUBLIC_KEY }}</span>
+    
+    <script src="{% static 'gestion/js/push-setup.js' %}"></script>
+
+</body>
+</html>
+<body class="bg-gray-100">
+
     <nav class="bg-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -171,9 +181,10 @@
             </div>
         </div>
     </main>
-{% webpush_button %}
-{% load static %}
-<script src="{% static 'js/push-setup.js' %}"></script>
+    
+    <span id="vapid-public-key" style="display: none;">{{ VAPID_PUBLIC_KEY }}</span>
+    
+    <script src="{% static 'gestion/js/push-setup.js' %}"></script>
 
 </body>
 </html>

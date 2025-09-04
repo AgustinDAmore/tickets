@@ -1,4 +1,5 @@
 {% load static %}
+{% load gestion_extras %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -37,8 +38,8 @@
                 <p class="text-sm text-gray-500 mt-1">
                     Publicado por <strong>{{ aviso.autor.username }}</strong> el {{ aviso.fecha_creacion|date:"d/m/Y H:i" }}
                 </p>
-                <div class="mt-4 text-gray-700">
-                    {{ aviso.cuerpo|linebreaks }}
+               <div class="mt-4 text-gray-700">
+                    {{ aviso.cuerpo|format_text }}
                 </div>
             </div>
             {% empty %}

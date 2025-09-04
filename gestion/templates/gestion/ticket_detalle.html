@@ -1,4 +1,5 @@
 {% load static %}
+{% load gestion_extras %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -11,15 +12,30 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .form-field-input { width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #D1D5DB; background-color: white; }
-        /* --- ESTILOS AÑADIDOS --- */
-        .comment-body a {
-            color: #3b82f6; /* Color azul para los enlaces */
-            text-decoration: underline; /* Subrayado para que se vea como un link */
+        
+        /* --- ESTILOS PARA EL EDITOR --- */
+        #comentario-preview { 
+            margin-top: 1rem; padding: 0.75rem; border-radius: 0.5rem; 
+            border: 1px solid #E5E7EB; background-color: #F9FAFB; min-height: 50px;
         }
-        .comment-body a:hover {
-            color: #1d4ed8; /* Un azul más oscuro al pasar el ratón */
+        .toolbar {
+            display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+            margin-bottom: 0.5rem; padding: 0.5rem; border: 1px solid #D1D5DB;
+            border-bottom: none; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem;
+            background-color: #F9FAFB;
         }
-        /* --- FIN DE ESTILOS AÑADIDOS --- */
+        .toolbar-button {
+            background-color: #fff; border: 1px solid #D1D5DB; border-radius: 0.375rem;
+            padding: 0.25rem 0.75rem; font-weight: 500; cursor: pointer; transition: background-color 0.2s;
+        }
+        .toolbar-button:hover { background-color: #F3F4F6; }
+        .color-picker-container {
+            display: flex; align-items: center; gap: 0.5rem; border: 1px solid #D1D5DB;
+            background-color: white; padding: 2px 8px; border-radius: 0.375rem;
+        }
+        .color-picker-input {
+            border: none; padding: 0; width: 24px; height: 24px; cursor: pointer; background-color: transparent;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -68,7 +84,7 @@
                 </span>
             </div>
             <div class="prose max-w-none text-gray-700">
-                <p>{{ ticket.descripcion|linebreaks }}</p>
+                {{ ticket.descripcion|format_text|safe }}
             </div>
 
             {% if initial_attachments %}
@@ -115,7 +131,30 @@
             {% if ticket.estado.nombre_estado != 'Finalizado' %}
             <form method="post" enctype="multipart/form-data" class="mb-6">
                 {% csrf_token %}
+
+                <div class="toolbar">
+                    <button type="button" class="toolbar-button" data-format="N"><b>N</b></button>
+                    <button type="button" class="toolbar-button" data-format="I"><i>I</i></button>
+                    <button type="button" class="toolbar-button" data-format="S"><u>S</u></button>
+                    <button type="button" class="toolbar-button" data-format="T"><s>T</s></button>
+                    <button type="button" class="toolbar-button" data-format="url">Link</button>
+                    <div class="color-picker-container">
+                         <label for="text-color-picker" class="text-sm font-medium">Texto:</label>
+                         <input type="color" id="text-color-picker" class="color-picker-input" value="#E63946">
+                         <button type="button" class="toolbar-button" data-format="C">Aplicar</button>
+                    </div>
+                    <div class="color-picker-container">
+                         <label for="highlight-color-picker" class="text-sm font-medium">Fondo:</label>
+                         <input type="color" id="highlight-color-picker" class="color-picker-input" value="#FFF3B0">
+                         <button type="button" class="toolbar-button" data-format="M">Aplicar</button>
+                    </div>
+                    <button type="button" class="toolbar-button" data-format="lista">* Viñetas</button>
+                    <button type="button" class="toolbar-button" data-format="lista-num">1. Lista</button>
+                </div>
+
                 {{ comment_form.cuerpo_comentario }}
+                <div id="comentario-preview"></div>
+
                 <div class="mt-2">
                     <label class="block text-sm font-medium text-gray-700">{{ comment_form.adjuntos.label }}</label>
                     {{ comment_form.adjuntos }}
@@ -135,7 +174,7 @@
             <div class="space-y-4">
                 {% for comentario in ticket.comentarios.all %}
                 <div class="bg-gray-50 p-4 rounded-lg">
-                    <p class="text-gray-800 comment-body">{{ comentario.cuerpo_comentario|urlize|linebreaks }}</p>
+                    <div class="text-gray-800">{{ comentario.cuerpo_comentario|format_text|safe }}</div>
                    
                     {% if comentario.adjuntos.all %}
                     <div class="mt-3">
@@ -163,5 +202,86 @@
         </div>
     </main>
 
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cuerpoTextarea = document.querySelector('textarea[name="cuerpo_comentario"]');
+        const previewDiv = document.getElementById('comentario-preview');
+        const toolbar = document.querySelector('.toolbar');
+        const textColorPicker = document.getElementById('text-color-picker');
+        const highlightColorPicker = document.getElementById('highlight-color-picker');
+
+        function updatePreview() {
+            if (!cuerpoTextarea) return;
+            let text = cuerpoTextarea.value;
+            let formattedText = text.replace(/N\((.*?)\)/g, '<strong>$1</strong>')
+                                    .replace(/I\((.*?)\)/g, '<em>$1</em>')
+                                    .replace(/S\((.*?)\)/g, '<u>$1</u>')
+                                    .replace(/T\((.*?)\)/g, '<s>$1</s>')
+                                    .replace(/M\(([^,)]+),([^)]+)\)/g, '<mark style="background-color:$1;">$2</mark>')
+                                    .replace(/C\(([^,]+),([^)]+)\)/g, '<span style="color:$1">$2</span>')
+                                    .replace(/url\((.*?)\)/g, '<a href="$1" target="_blank" class="text-indigo-600 hover:underline">$1</a>');
+
+            const lines = formattedText.split('\n');
+            let html = '';
+            let inUl = false, inOl = false;
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) continue;
+                if (trimmedLine.startsWith('* ')) {
+                    if (inOl) { html += '</ol>'; inOl = false; }
+                    if (!inUl) { html += '<ul>'; inUl = true; }
+                    html += `<li>${trimmedLine.substring(2)}</li>`;
+                } else if (/^\d+\.\s/.test(trimmedLine)) {
+                    if (inUl) { html += '</ul>'; inUl = false; }
+                    if (!inOl) { html += '<ol>'; inOl = true; }
+                    html += `<li>${trimmedLine.replace(/^\d+\.\s/, '')}</li>`;
+                } else {
+                    if (inUl) { html += '</ul>'; inUl = false; }
+                    if (inOl) { html += '</ol>'; inOl = false; }
+                    html += `<p>${trimmedLine}</p>`;
+                }
+            }
+            if (inUl) html += '</ul>'; if (inOl) html += '</ol>';
+            previewDiv.innerHTML = html;
+        }
+
+        if(toolbar) {
+            toolbar.addEventListener('click', function(e) {
+                if (e.target.tagName !== 'BUTTON') return;
+                const format = e.target.dataset.format;
+                const start = cuerpoTextarea.selectionStart;
+                const end = cuerpoTextarea.selectionEnd;
+                const selectedText = cuerpoTextarea.value.substring(start, end) || 'texto';
+                let replacement = '';
+                switch (format) {
+                    case 'N': case 'I': case 'S': case 'T':
+                        replacement = `${format.toUpperCase()}(${selectedText})`;
+                        break;
+                    case 'M':
+                        replacement = `M(${highlightColorPicker.value}, ${selectedText})`;
+                        break;
+                    case 'C':
+                        replacement = `C(${textColorPicker.value}, ${selectedText})`;
+                        break;
+                    case 'url':
+                        replacement = `url(${selectedText === 'texto' ? 'https://ejemplo.com' : selectedText})`;
+                        break;
+                    case 'lista': replacement = `\n* Item 1\n* Item 2`; break;
+                    case 'lista-num': replacement = `\n1. Item 1\n2. Item 2`; break;
+                }
+                if (replacement) {
+                    cuerpoTextarea.setRangeText(replacement, start, end, 'end');
+                    cuerpoTextarea.focus();
+                    cuerpoTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+        }
+
+        if (cuerpoTextarea) {
+            cuerpoTextarea.addEventListener('input', updatePreview);
+            updatePreview();
+        }
+    });
+    </script>
 </body>
 </html>

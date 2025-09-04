@@ -109,8 +109,7 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
     
     user_can_see_informe = request.user.groups.filter(name='Informe').exists()
     
-    # --- CORRECCIÓN AQUÍ ---
-    # Definimos el diccionario para las notificaciones push
+    # Prepara los datos para las notificaciones push
     webpush_data = {"group": request.user.username} 
 
     context = {
@@ -126,7 +125,8 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
         'user_can_view_all_tickets': user_can_view_all_tickets,
         'user_can_see_informe': user_can_see_informe,
         'unread_comment_tickets_ids': unread_comment_tickets_ids,
-        'webpush': webpush_data, 
+        'webpush': webpush_data,
+        'VAPID_PUBLIC_KEY': settings.WEBPUSH_SETTINGS.get('VAPID_PUBLIC_KEY')
     }
     
     if user_can_view_all_tickets:

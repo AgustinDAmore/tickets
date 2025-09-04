@@ -27,8 +27,13 @@ function urlB64ToUint8Array(base64String) {
 }
 
 async function subscribeUser() {
-    // La clave pública se pasará desde el template
-    const vapidPublicKey = document.getElementById('vpk').textContent.trim();
+    // Obtener la clave pública desde el elemento oculto en el HTML
+    const vapidPublicKeyElement = document.getElementById('vapid-public-key');
+    if (!vapidPublicKeyElement || !vapidPublicKeyElement.textContent) {
+        console.error('VAPID public key not found in HTML.');
+        return;
+    }
+    const vapidPublicKey = vapidPublicKeyElement.textContent.trim();
 
     try {
         const registration = await navigator.serviceWorker.ready;
@@ -57,7 +62,9 @@ function initializeUI() {
         Notification.requestPermission().then(permission => {
             if (permission === 'granted') {
                 console.log('Notification permission granted.');
-                subscribeUser();
+                navigator.serviceWorker.ready.then(() => {
+                    subscribeUser();
+                });
             }
         });
     }
